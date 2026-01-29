@@ -1,0 +1,1 @@
+ALTER TABLE "admin" ADD COLUMN "approval" text DEFAULT 'pending' NOT NULL;

@@ -1,0 +1,47 @@
+import { bigint, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+
+interface Outcome {
+    title: string,
+    price: number,
+    volume: number,
+}
+
+export const marketCategory = pgEnum("market_category", ["sports", "crypto", "weather"])
+export const marketStatus = pgEnum("market_status", ["open", "settled", "resolving", "open_soon"])
+
+export const market = pgTable("market", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    slug: text("slug").notNull().unique(),
+    description: text("description").notNull(),
+    settlementRules: text("settlement_rules").notNull(),
+    category: marketCategory("category").notNull(),
+    outcomes: jsonb("outcomes").$type<Outcome[]>().notNull(),
+    winner: text("winner"),
+    marketStatus: marketStatus("status").notNull().default("open_soon"),
+
+    // Market start and ending time
+    marketStarts: bigint("market_starts", { mode: "number" }).notNull(),
+    marketEnds: bigint("market_ends", { mode: "number" }).notNull(),
+
+    // createdBy: uuid("created_by").references(() => market.id)
+
+    // Market create and update timestamp
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").$onUpdate(() => new Date()).notNull()
+})
+
+// Sports category
+export const sportsCategory = pgTable("sports_category", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    matchId: text("match_id").notNull(),
+    marketId: uuid("market_id").references(() => market.id, { onDelete: "cascade" }),
+})
+
+// Crypto category
+export const cryptoCategory = pgTable("crypto_category", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    interval: text("interval").notNull(),
+    cryptoName: text("crypto_name").notNull(),
+    marketId: uuid("market_id").references(() => market.id, { onDelete: "cascade" })
+})

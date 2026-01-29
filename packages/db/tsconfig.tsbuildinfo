@@ -1,0 +1,1 @@
+{"root":["./src/dbConnection.ts","./src/index.ts","./src/schemas/admin.ts","./src/schemas/adminRequest.ts","./src/schemas/market.ts","./src/schemas/order.ts","./src/schemas/position.ts","./src/schemas/user.ts"],"version":"5.9.2"}
