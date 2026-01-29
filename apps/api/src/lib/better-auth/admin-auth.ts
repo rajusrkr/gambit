@@ -17,6 +17,25 @@ const adminAuth = betterAuth({
     "http://localhost:5174",
     "http://localhost:5175",
   ],
+  advanced: {
+    cookiePrefix: "admin-web",
+    cookies: {
+      session_token: {
+        name: "admin_auth",
+        attributes: {
+          httpOnly: true,
+          secure: true,
+        },
+      },
+      session_data: {
+        name: "admin_auth_data",
+        attributes: {
+          httpOnly: true,
+          secure: true,
+        },
+      },
+    },
+  },
   // Enable only email and password
   emailAndPassword: {
     enabled: true,
@@ -87,6 +106,11 @@ const adminAuth = betterAuth({
   },
   session: {
     modelName: "adminSession",
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 6,
+      refreshCache: true,
+    },
   },
 });
 

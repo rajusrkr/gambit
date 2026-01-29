@@ -65,7 +65,7 @@ export function AdminLoginForm({
       await adminAuthClient.signIn.email({
         email: value.email,
         password: value.password,
-
+        callbackURL: "http://localhost:5174",
         fetchOptions: {
           onSuccess: () => {
             toast.success("Login success", {
