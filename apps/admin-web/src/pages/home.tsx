@@ -1,5 +1,5 @@
 import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Outlet } from "react-router";
 
 export default function AppLayout() {
@@ -14,7 +14,10 @@ export default function AppLayout() {
     >
       <AppSidebar variant="inset" />
       <SidebarInset>
+        <div className="mt-2">
+        <SidebarTrigger />
         <Outlet />
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );
