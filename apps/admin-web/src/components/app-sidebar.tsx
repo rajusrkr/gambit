@@ -1,8 +1,5 @@
 import * as React from "react";
-import {
-  IconBrightness,
-  IconInnerShadowTop,
-} from "@tabler/icons-react";
+import { IconBrightness, IconInnerShadowTop } from "@tabler/icons-react";
 import {
   Sidebar,
   SidebarContent,
@@ -16,21 +13,12 @@ import { NavMain } from "./nav-main";
 import { NavUser } from "./nav-user";
 import { Link } from "react-router";
 
-import { useTheme } from "@/components/theme-provider"
-
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  }
-};
+import { useTheme } from "@/components/theme-provider";
+import { useAdminStore } from "@/lib/zStore";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-
-
-  const {setTheme, theme} = useTheme()
-
+  const { setTheme, theme } = useTheme();
+  const { email, name } = useAdminStore();
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -46,10 +34,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <span className="text-base font-semibold">Gambit Admin</span>
               </Link>
             </SidebarMenuButton>
-            <SidebarMenuButton className="flex justify-center"
-            onClick={() => {
-              setTheme(theme === "dark" ? "light" : "dark" )
-            }}
+            <SidebarMenuButton
+              className="flex justify-center"
+              onClick={() => {
+                setTheme(theme === "dark" ? "light" : "dark");
+              }}
             >
               <IconBrightness />
             </SidebarMenuButton>
@@ -60,7 +49,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavMain />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser avatar={name} email={email} name={name} />
       </SidebarFooter>
     </Sidebar>
   );

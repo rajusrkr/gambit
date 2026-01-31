@@ -1,5 +1,5 @@
 import { createAuthClient } from "better-auth/react";
-import { inferAdditionalFields } from "better-auth/client/plugins"
+import { inferAdditionalFields } from "better-auth/client/plugins";
 
 export const adminAuthClient = createAuthClient({
   baseURL: "http://localhost:3333/api/admin/auth",
@@ -8,9 +8,11 @@ export const adminAuthClient = createAuthClient({
       user: {
         approval: {
           type: ["pending", "approved", "rejected"],
-
-        }
-      }
-    })
-  ]
+        },
+        role: {
+          type: ["admin", "superAdmin", "user"],
+        },
+      },
+    }),
+  ],
 });
