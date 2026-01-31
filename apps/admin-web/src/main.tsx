@@ -7,7 +7,7 @@ import { ThemeProvider } from "./components/theme-provider.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ThemeProvider defaultTheme="dark" storageKey="gambit-admin-web-theme">
+    <ThemeProvider defaultTheme="system" storageKey="gambit-admin-web-theme">
       <App />
     </ThemeProvider>
   </StrictMode>,

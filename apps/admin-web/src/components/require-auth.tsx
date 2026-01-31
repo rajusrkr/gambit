@@ -17,7 +17,6 @@ export default function RequireAuth({ children }: { children: JSX.Element }) {
     return null
   }
 
-
   if (session.user.approval === "pending") {
     return (
       <Navigate
