@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+type formTabs = "CT" | "DR" | "O" | "SE";
+
 interface States {
   name: string;
   email: string;
@@ -14,6 +16,9 @@ interface States {
     email: string;
     role: string;
   }) => void;
+
+  currentCreateMarketFormTab: formTabs;
+  setCurrentCreateMarketFormTab: (tab: string) => void;
 }
 
 export const useAdminStore = create(
@@ -22,8 +27,13 @@ export const useAdminStore = create(
       email: "",
       name: "",
       role: "",
+      currentCreateMarketFormTab: "CT",
+
       setAdminStates: ({ email, name, role }) => {
         set({ email, name, role });
+      },
+      setCurrentCreateMarketFormTab: (tab) => {
+        set({ currentCreateMarketFormTab: tab as formTabs });
       },
     }),
     { name: "gambit-admin-store" },

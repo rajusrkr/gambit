@@ -1,6 +1,11 @@
 import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { Outlet } from "react-router";
+import { Separator } from "@/components/ui/separator";
 
 export default function AppLayout() {
   return (
@@ -15,8 +20,9 @@ export default function AppLayout() {
       <AppSidebar variant="inset" />
       <SidebarInset>
         <div className="mt-2">
-        <SidebarTrigger />
-        <Outlet />
+          <SidebarTrigger />
+          <Separator />
+          <Outlet />
         </div>
       </SidebarInset>
     </SidebarProvider>
