@@ -13,7 +13,7 @@ const sideBarMenu = [
   {
     title: "Dashboard",
     id: "dashboard",
-    link: "/dashboard",
+    link: "/",
     icon: <IconDashboardFilled />,
   },
   {

@@ -16,8 +16,8 @@ export function App() {
             </RequireAuth>
           }
         >
-          <Route element={<AppLayout />} path="/">
-            <Route element={<Dashboard />} path="/dashboard" />
+          <Route element={<AppLayout />}>
+            <Route element={<Dashboard />} path="/" />
             <Route element={<CreateNewMarket />} path="/create-new-market" />
           </Route>
         </Route>
