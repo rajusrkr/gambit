@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-type formTabs = "CT" | "DR" | "O" | "SE";
+type formTabs = "CT" | "DR" | "O" | "SE" | "P";
 
 interface States {
   name: string;
