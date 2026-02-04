@@ -15,6 +15,13 @@
       "when": 1769514649445,
       "tag": "0001_optimal_scourge",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770185899270,
+      "tag": "0002_sharp_jane_foster",
+      "breakpoints": true
     }
   ]
 }
