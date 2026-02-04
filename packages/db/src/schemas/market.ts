@@ -30,7 +30,6 @@ export const marketStatus = pgEnum("market_status", [
 export const market = pgTable("market", {
   id: uuid("id").primaryKey().defaultRandom(),
   title: text("title").notNull(),
-  slug: text("slug").notNull().unique(),
   description: text("description").notNull(),
   settlementRules: text("settlement_rules").notNull(),
   category: marketCategory("category").notNull(),
