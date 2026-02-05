@@ -18,9 +18,15 @@ export default function AppLayout() {
       }
     >
       <AppSidebar variant="inset" />
+
       <SidebarInset>
         <div className="mt-2">
-          <SidebarTrigger />
+          <div className="flex items-center">
+            <SidebarTrigger />
+            <div className="md:hidden flex">
+              <p className="font-semibold">Gambit Admin</p>
+            </div>
+          </div>
           <Separator />
           <Outlet />
         </div>
