@@ -1,27 +1,17 @@
-import { BrowserRouter, Outlet, Route, Routes } from "react-router";
-import RequireAuth from "./components/require-auth";
-import AdminApproval from "./pages/approval";
-import AppLayout from "./pages/home";
+import { BrowserRouter, Route, Routes } from "react-router";
+import AppLayout from "./pages/app-layout";
+import AppLayout2 from "./pages/app-layout2";
 import Dashboard from "./pages/dashboard";
-import CreateNewMarket from "./pages/create-new-market";
-
+import CreateMarket from "./pages/create-market";
 export function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route
-          element={
-            <RequireAuth>
-              <Outlet />
-            </RequireAuth>
-          }
-        >
-          <Route element={<AppLayout />}>
-            <Route element={<Dashboard />} path="/" />
-            <Route element={<CreateNewMarket />} path="/create-new-market" />
-          </Route>
+        <Route path="/" element={<AppLayout2 />} />
+        <Route element={<AppLayout />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard/create-market" element={<CreateMarket />} />
         </Route>
-        <Route element={<AdminApproval />} path="/approval" />
       </Routes>
     </BrowserRouter>
   );

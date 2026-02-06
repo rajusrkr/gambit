@@ -1,11 +1,7 @@
 import { AppSidebar } from "@/components/app-sidebar";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+import { SiteHeader } from "@/components/site-header";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Outlet } from "react-router";
-import { Separator } from "@/components/ui/separator";
 
 export default function AppLayout() {
   return (
@@ -18,16 +14,9 @@ export default function AppLayout() {
       }
     >
       <AppSidebar variant="inset" />
-
       <SidebarInset>
-        <div className="mt-2">
-          <div className="flex items-center">
-            <SidebarTrigger />
-            <div className="md:hidden flex">
-              <p className="font-semibold">Gambit Admin</p>
-            </div>
-          </div>
-          <Separator />
+        <SiteHeader />
+        <div className="flex flex-1 flex-col px-2">
           <Outlet />
         </div>
       </SidebarInset>
