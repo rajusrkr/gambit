@@ -28,9 +28,9 @@ import {
   IconDatabase,
   IconReport,
   IconFileWord,
-  IconInnerShadowTop,
   IconBrightnessFilled,
   IconCirclePlus,
+  IconChessKnight,
 } from "@tabler/icons-react";
 import { useTheme } from "./theme-provider";
 
@@ -174,8 +174,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:p-1.5!"
             >
               <a href="#">
-                <IconInnerShadowTop className="size-5!" />
-                <span className="text-base font-semibold">Acme Inc.</span>
+                <IconChessKnight className="size-5!" />
+                <span className="text-base font-semibold">Gambit Admin</span>
               </a>
             </SidebarMenuButton>
             <SidebarMenuButton
@@ -196,7 +196,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSecondary items={appSidebarData.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={appSidebarData.user} />
+        <NavUser />
       </SidebarFooter>
     </Sidebar>
   );
