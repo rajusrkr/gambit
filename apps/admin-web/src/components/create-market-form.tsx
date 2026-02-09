@@ -37,7 +37,7 @@ import {
 import z from "zod";
 import { useForm } from "@tanstack/react-form";
 import { useRef, useState } from "react";
-import { IconSelector } from "@tabler/icons-react";
+import { IconSearch, IconSelector } from "@tabler/icons-react";
 import { format } from "date-fns";
 import {
   Dialog,
@@ -47,11 +47,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+
+import {
   Item,
   ItemContent,
   ItemDescription,
   ItemTitle,
 } from "@/components/ui/item";
+import { cryptoCoins } from "@/lib/utils";
 
 const outcomeSchema = z.object({
   title: z.string(),
@@ -66,7 +73,8 @@ const formSchema = z.object({
       title: z
         .string()
         .trim()
-        .min(10, "Title should be at least 10 character long"),
+        .min(10, "Title should be at least 10 character long")
+        .transform((val) => val.replace(/\s+/g, " ")),
       description: z.string(),
       settlementRules: z.string(),
       category: z.enum(["sports", "crypto", "weather"]),
@@ -85,7 +93,7 @@ const formSchema = z.object({
   //   This input only specific to the crypto category
   cryptoCategoryInput: z.object({
     interval: z.string(),
-    cryptoName: z.string(),
+    cryptoName: z.string().trim().min(1, "Value is required, cannot be spaces"),
   }),
 });
 type FormValues = z.infer<typeof formSchema>;
@@ -138,6 +146,8 @@ export default function CreateMarketForm() {
     setIsSportsMatchSelectionCommandDialogOpen,
   ] = useState(false);
 
+  const [coinList, setCoinList] = useState<{ coin: string }[]>([]);
+
   return (
     <>
       {/* Catgory crypto dialog*/}
@@ -153,14 +163,51 @@ export default function CreateMarketForm() {
             </DialogDescription>
           </DialogHeader>
 
-          <div>
-            Lorem ipsum dolor sit amet consectetur adipisicing elit. Ut,
-            molestiae sapiente tempore eius architecto officiis nostrum. Tempore
-            cupiditate cumque dolore doloremque. Eveniet commodi vel soluta
-            omnis provident quis hic repellendus ex nemo eaque eius, ea cumque
-            error, sequi voluptatum. Itaque omnis facere eius quis hic
-            recusandae suscipit enim cupiditate accusantium?
-          </div>
+          <form.Field
+            name="cryptoCategoryInput.cryptoName"
+            children={(field) => {
+              return (
+                <>
+                  <div>
+                    <InputGroup>
+                      <InputGroupInput
+                        type="text"
+                        placeholder="Search. eg: BTC"
+                        onChange={(e) => {
+                          // If e.target.value have something this will filterout, if not then 124 coins will be taken
+                          const filteredCoin = cryptoCoins.filter((c) =>
+                            c.coin.includes(e.target.value.toUpperCase()),
+                          );
+                          setCoinList(filteredCoin.slice(0, 5));
+                        }}
+                      />
+                      <InputGroupAddon align={"inline-end"}>
+                        <IconSearch />
+                      </InputGroupAddon>
+                    </InputGroup>
+                  </div>
+
+                  {coinList.map((coins, i) => (
+                    <div
+                      className="hover:cursor-pointer hover:bg-accent"
+                      onClick={() => {
+                        console.log(coins.coin);
+                        field.handleChange(coins.coin);
+                        setCryptoSelectDialogOpen(false);
+                      }}
+                      key={i}
+                    >
+                      <Item variant={"outline"}>
+                        <ItemContent>
+                          <ItemTitle>{coins.coin}</ItemTitle>
+                        </ItemContent>
+                      </Item>
+                    </div>
+                  ))}
+                </>
+              );
+            }}
+          />
         </DialogContent>
       </Dialog>
 
@@ -221,11 +268,8 @@ export default function CreateMarketForm() {
                           defaultValue={field.state.value}
                           onValueChange={(e) => {
                             field.handleChange(e);
-
                             const category = e;
-
                             console.log(category);
-
                             switch (category) {
                               case "crypto":
                                 setCryptoSelectDialogOpen(true);
@@ -274,21 +318,40 @@ export default function CreateMarketForm() {
                     return (
                       <>
                         {values.category === "crypto" && (
-                          <Field>
-                            <FieldLabel htmlFor="crypto-name-field">
-                              Crypto name
-                            </FieldLabel>
-                            <Input
-                              readOnly
-                              defaultValue={values.cryptoName}
-                              name="crypto-name-field"
-                              id="crypto-name-field"
-                              placeholder="Select a crypto"
-                              onClick={() => {
-                                setCryptoSelectDialogOpen(true);
-                              }}
-                            />
-                          </Field>
+                          <form.Field
+                            name="cryptoCategoryInput.cryptoName"
+                            children={(field) => {
+                              const isInvalid =
+                                field.state.meta.isTouched &&
+                                !field.state.meta.isValid;
+
+                              return (
+                                <Field data-invalid={isInvalid}>
+                                  <FieldLabel htmlFor={field.name}>
+                                    Crypto
+                                  </FieldLabel>
+                                  <Input
+                                    id={field.name}
+                                    name={field.name}
+                                    readOnly
+                                    defaultValue={values.cryptoName}
+                                    onBlur={field.handleBlur}
+                                    aria-invalid={isInvalid}
+                                    placeholder="Select a crypto"
+                                    onClick={() => {
+                                      setCryptoSelectDialogOpen(true);
+                                      setCoinList([]);
+                                    }}
+                                  />
+                                  {isInvalid && (
+                                    <FieldError
+                                      errors={field.state.meta.errors}
+                                    />
+                                  )}
+                                </Field>
+                              );
+                            }}
+                          />
                         )}
                       </>
                     );
@@ -424,6 +487,8 @@ export default function CreateMarketForm() {
                           type="text"
                           defaultValue={field.state.value}
                           onChange={(e) => {
+                            console.log(e.target.value.trim());
+
                             field.handleChange(e.target.value);
                           }}
                         />
