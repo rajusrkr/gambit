@@ -55,7 +55,10 @@ export const market = pgTable("market", {
 // Sports category
 export const sportsCategory = pgTable("sports_category", {
   id: uuid("id").primaryKey().defaultRandom(),
+  match: text("match").notNull(),
   matchId: text("match_id").notNull(),
+  matchStarts: bigint("match_starts", { mode: "number" }).notNull(),
+  matchEnds: bigint("match_ends", { mode: "number" }).notNull(),
   marketId: uuid("market_id").references(() => market.id, {
     onDelete: "cascade",
   }),

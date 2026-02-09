@@ -15,6 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,16 +26,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogMedia,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+
 import {
   Card,
   CardContent,
@@ -44,8 +37,21 @@ import {
 import z from "zod";
 import { useForm } from "@tanstack/react-form";
 import { useRef, useState } from "react";
-import { IconProgressX, IconSelector } from "@tabler/icons-react";
+import { IconSelector } from "@tabler/icons-react";
 import { format } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemTitle,
+} from "@/components/ui/item";
 
 const outcomeSchema = z.object({
   title: z.string(),
@@ -54,7 +60,7 @@ const outcomeSchema = z.object({
 });
 
 const formSchema = z.object({
-  // Market base inputs, The commong inputs
+  // Market base inputs, The common inputs
   marketBaseInput: z
     .object({
       title: z
@@ -68,16 +74,19 @@ const formSchema = z.object({
       marketStarts: z.number(),
       marketEnds: z.number(),
     })
-    .refine((data) => data.marketEnds > data.marketStarts, {
-      message: "Market end time must be after market starts",
+    .refine((data) => data.marketStarts < data.marketEnds, {
+      message: "error in ndate field",
       path: ["marketEnds"],
     }),
+
   // This input only specific to the sports category
-  sportsCategoryInput: z.object({ matchId: z.string() }).or(z.undefined()),
+  sportsCategoryInput: z.object({ matchId: z.string(), match: z.string() }),
+
   //   This input only specific to the crypto category
-  cryptoCategoryInput: z
-    .object({ interval: z.string(), cryptoName: z.string() })
-    .or(z.undefined()),
+  cryptoCategoryInput: z.object({
+    interval: z.string(),
+    cryptoName: z.string(),
+  }),
 });
 type FormValues = z.infer<typeof formSchema>;
 
@@ -93,48 +102,91 @@ export default function CreateMarketForm() {
         marketStarts: 0,
         marketEnds: 0,
       },
-      sportsCategoryInput: { matchId: "" } as FormValues["sportsCategoryInput"],
+
+      sportsCategoryInput: {
+        matchId: "",
+        match: "",
+      } as FormValues["sportsCategoryInput"],
       cryptoCategoryInput: {
         cryptoName: "",
         interval: "",
       } as FormValues["cryptoCategoryInput"],
     },
+
     validators: {
       onSubmit: formSchema,
+    },
+
+    onSubmit: async ({ value }) => {
+      console.log(value);
     },
   });
 
   const outcomeRef = useRef<HTMLInputElement>(null);
-  const [isAlertShowing, setIsAlertShowing] = useState(false);
-  const [alertMessage, setAlertMessage] = useState("");
-
   const [marketStartDate, setMarketStartDate] = useState<Date | undefined>(
     undefined,
   );
   const [marketEndDate, setMarketEndDate] = useState<Date | undefined>(
     undefined,
   );
-
   const [isStartMarketCalendarOpen, setIsStartMarketCalendarOpen] =
     useState(false);
   const [isEndMarketCalendarOpen, setIsEndMarketCalendarOpen] = useState(false);
+  const [cryptoSelectDialogOpen, setCryptoSelectDialogOpen] = useState(false);
+  const [
+    sportsMatchSelectionCommandDialogOpen,
+    setIsSportsMatchSelectionCommandDialogOpen,
+  ] = useState(false);
 
   return (
     <>
-      <AlertDialog open={isAlertShowing} onOpenChange={setIsAlertShowing}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogMedia>
-              <IconProgressX />
-            </AlertDialogMedia>
-            <AlertDialogTitle>Problem in adding outomes</AlertDialogTitle>
-            <AlertDialogDescription>{alertMessage}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Catgory crypto dialog*/}
+      <Dialog
+        open={cryptoSelectDialogOpen}
+        onOpenChange={setCryptoSelectDialogOpen}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select a crypto currency</DialogTitle>
+            <DialogDescription>
+              Search and select Crypto Currency from below list
+            </DialogDescription>
+          </DialogHeader>
+
+          <div>
+            Lorem ipsum dolor sit amet consectetur adipisicing elit. Ut,
+            molestiae sapiente tempore eius architecto officiis nostrum. Tempore
+            cupiditate cumque dolore doloremque. Eveniet commodi vel soluta
+            omnis provident quis hic repellendus ex nemo eaque eius, ea cumque
+            error, sequi voluptatum. Itaque omnis facere eius quis hic
+            recusandae suscipit enim cupiditate accusantium?
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Category sports command dialog */}
+      <Dialog
+        open={sportsMatchSelectionCommandDialogOpen}
+        onOpenChange={setIsSportsMatchSelectionCommandDialogOpen}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select a a football match</DialogTitle>
+            <DialogDescription>
+              Search and select Crypto Currency from below list
+            </DialogDescription>
+          </DialogHeader>
+
+          <div>
+            Lorem ipsum dolor sit amet consectetur adipisicing elit. Ut,
+            molestiae sapiente tempore eius architecto officiis nostrum. Tempore
+            cupiditate cumque dolore doloremque. Eveniet commodi vel soluta
+            omnis provident quis hic repellendus ex nemo eaque eius, ea cumque
+            error, sequi voluptatum. Itaque omnis facere eius quis hic
+            recusandae suscipit enim cupiditate accusantium?
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Tabs defaultValue="form">
         <TabsList variant={"line"}>
@@ -143,7 +195,12 @@ export default function CreateMarketForm() {
         </TabsList>
         {/* Form */}
         <TabsContent value="form">
-          <form>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              form.handleSubmit();
+            }}
+          >
             <FieldGroup>
               <FieldDescription>
                 Fill out the below form to create a new market
@@ -164,6 +221,26 @@ export default function CreateMarketForm() {
                           defaultValue={field.state.value}
                           onValueChange={(e) => {
                             field.handleChange(e);
+
+                            const category = e;
+
+                            console.log(category);
+
+                            switch (category) {
+                              case "crypto":
+                                setCryptoSelectDialogOpen(true);
+                                break;
+
+                              case "sports":
+                                setIsSportsMatchSelectionCommandDialogOpen(
+                                  true,
+                                );
+                                break;
+
+                              default:
+                                console.error("Unknow category");
+                                return;
+                            }
                           }}
                         >
                           <SelectTrigger>
@@ -182,6 +259,150 @@ export default function CreateMarketForm() {
                           <FieldError errors={field.state.meta.errors} />
                         )}
                       </Field>
+                    );
+                  }}
+                />
+
+                {/* Show input fields according to the market category */}
+                {/* Crypto */}
+                <form.Subscribe
+                  selector={(state) => ({
+                    category: state.values.marketBaseInput.category,
+                    cryptoName: state.values.cryptoCategoryInput.cryptoName,
+                  })}
+                  children={(values) => {
+                    return (
+                      <>
+                        {values.category === "crypto" && (
+                          <Field>
+                            <FieldLabel htmlFor="crypto-name-field">
+                              Crypto name
+                            </FieldLabel>
+                            <Input
+                              readOnly
+                              defaultValue={values.cryptoName}
+                              name="crypto-name-field"
+                              id="crypto-name-field"
+                              placeholder="Select a crypto"
+                              onClick={() => {
+                                setCryptoSelectDialogOpen(true);
+                              }}
+                            />
+                          </Field>
+                        )}
+                      </>
+                    );
+                  }}
+                />
+                <form.Subscribe
+                  selector={(state) => ({
+                    category: state.values.marketBaseInput.category,
+                    cryptoName: state.values.cryptoCategoryInput.cryptoName,
+                  })}
+                  children={(values) => {
+                    return (
+                      <>
+                        {values.category === "crypto" && (
+                          <form.Field
+                            name={"cryptoCategoryInput.interval"}
+                            children={(field) => {
+                              return (
+                                <Field className="w-full">
+                                  <FieldLabel htmlFor="crypto-interval">
+                                    Crypto chart interval
+                                  </FieldLabel>
+                                  <Select>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select a interval" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectGroup>
+                                        <SelectLabel>Intervals</SelectLabel>
+                                        <SelectItem value="1d">1D</SelectItem>
+                                        <SelectItem value="5m">5M</SelectItem>
+                                      </SelectGroup>
+                                    </SelectContent>
+                                  </Select>
+                                </Field>
+                              );
+                            }}
+                          />
+                        )}
+                      </>
+                    );
+                  }}
+                />
+                {/* Sports */}
+                {/* Match id, match, match starts, match ends */}
+                <form.Subscribe
+                  selector={(state) => ({
+                    category: state.values.marketBaseInput.category,
+                    match: state.values.sportsCategoryInput.match,
+                    matchId: state.values.sportsCategoryInput.matchId,
+                  })}
+                  children={(values) => {
+                    return (
+                      <>
+                        {values.category === "sports" && (
+                          <FieldGroup className="grid grid-cols-[5fr_5fr]">
+                            <Field>
+                              <FieldLabel htmlFor="selected-match">
+                                Match
+                              </FieldLabel>
+                              <Input
+                                readOnly
+                                name="selected-match"
+                                id="selected-match"
+                                placeholder="Select match"
+                                onClick={() => {
+                                  setIsSportsMatchSelectionCommandDialogOpen(
+                                    true,
+                                  );
+                                }}
+                              />
+                            </Field>
+                            <Field>
+                              <FieldLabel htmlFor="selected-match-id">
+                                Match Id
+                              </FieldLabel>
+                              <Input
+                                readOnly
+                                name="selected-match-id"
+                                id="selected-match-id"
+                                placeholder="Match Id"
+                              />
+                            </Field>
+                          </FieldGroup>
+                        )}
+                      </>
+                    );
+                  }}
+                />
+                <form.Subscribe
+                  selector={(state) => ({
+                    category: state.values.marketBaseInput.category,
+                  })}
+                  children={(values) => {
+                    return (
+                      <>
+                        {values.category === "sports" && (
+                          <FieldGroup>
+                            <Item variant={"outline"}>
+                              <ItemContent>
+                                <ItemTitle>Market timings</ItemTitle>
+                                <ItemDescription className="flex">
+                                  <span>Starts: 12-12-2026, 12:59PM</span>
+                                  <Separator
+                                    orientation="vertical"
+                                    className=" mx-4 data-[orientation=vertical]:h-5"
+                                  />
+                                  <span>Ends: 12-12-2026, 2:29PM</span>
+                                </ItemDescription>
+                              </ItemContent>
+                            </Item>
+                          </FieldGroup>
+                        )}
+                      </>
                     );
                   }}
                 />
@@ -246,6 +467,10 @@ export default function CreateMarketForm() {
                 {/* Settlement rules */}
                 <form.Field
                   name="marketBaseInput.settlementRules"
+                  validators={{
+                    onSubmit: ({ value }) =>
+                      value.length < 5 ? "More required" : undefined,
+                  }}
                   children={(field) => {
                     const isInvalid =
                       field.state.meta.isTouched && !field.state.meta.isValid;
@@ -264,8 +489,13 @@ export default function CreateMarketForm() {
                             field.handleChange(e.target.value);
                           }}
                         />
-                        {isInvalid && (
+                        {/* {isInvalid && (
                           <FieldError errors={field.state.meta.errors} />
+                        )} */}
+                        {!field.state.meta.isValid && (
+                          <em role="alert">
+                            {field.state.meta.errors.join(", ")}
+                          </em>
                         )}
                       </Field>
                     );
@@ -275,74 +505,75 @@ export default function CreateMarketForm() {
                 {/* Market starts */}
                 <form.Field
                   name="marketBaseInput.marketStarts"
-                  children={() => {
+                  children={(field) => {
                     return (
-                      <Field>
-                        <FieldGroup className="grid grid-cols-[8fr_2fr] gap-2">
-                          <Field>
-                            <FieldLabel htmlFor="market-start-doptionalate">
-                              Market start date
-                            </FieldLabel>
-                            <Popover
-                              open={isStartMarketCalendarOpen}
-                              onOpenChange={setIsStartMarketCalendarOpen}
-                            >
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  id="date-picker-optional"
-                                  className="w-32 justify-between font-normal"
-                                >
-                                  {marketStartDate
-                                    ? format(marketStartDate, "PPP")
-                                    : "Select date"}
-                                  <IconSelector />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent
-                                className="w-auto overflow-hidden p-0"
-                                align="start"
+                      <FieldGroup className="grid grid-cols-[8fr_2fr] gap-2">
+                        <Field>
+                          <FieldLabel htmlFor="market-start-doptionalate">
+                            Market start date
+                          </FieldLabel>
+                          <Popover
+                            open={isStartMarketCalendarOpen}
+                            onOpenChange={setIsStartMarketCalendarOpen}
+                          >
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                id="date-picker-optional"
+                                className="w-32 justify-between font-normal"
                               >
-                                <Calendar
-                                  mode="single"
-                                  captionLayout="dropdown"
-                                  startMonth={new Date(2026, 0)}
-                                  endMonth={new Date(2040, 0)}
-                                  onSelect={(date) => {
-                                    console.log(date);
-
-                                    setMarketStartDate(date);
-                                    setIsStartMarketCalendarOpen(false);
-                                  }}
-                                />
-                              </PopoverContent>
-                            </Popover>
-                          </Field>
-                          <Field className="w-32">
-                            <FieldLabel htmlFor="time-picker-optional">
-                              Market start time
-                            </FieldLabel>
-                            <Input
-                              type="time"
-                              id="market-start-time-picker"
-                              step="1"
-                              defaultValue="00:00:00"
-                              className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-                              onChange={(e) => {
-                                console.log(e.target.value);
-                              }}
-                            />
-                          </Field>
-                        </FieldGroup>
-                      </Field>
+                                {marketStartDate
+                                  ? format(marketStartDate, "PPP")
+                                  : "Select date"}
+                                <IconSelector />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              className="w-auto overflow-hidden p-0"
+                              align="start"
+                            >
+                              <Calendar
+                                mode="single"
+                                captionLayout="dropdown"
+                                startMonth={new Date(2026, 0)}
+                                endMonth={new Date(2040, 0)}
+                                onSelect={(date) => {
+                                  console.log(date);
+                                  field.handleChange(date!.getTime());
+                                  setMarketStartDate(date);
+                                  setIsStartMarketCalendarOpen(false);
+                                }}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </Field>
+                        <Field className="w-32">
+                          <FieldLabel htmlFor="time-picker-optional">
+                            Market start time
+                          </FieldLabel>
+                          <Input
+                            type="time"
+                            id="market-start-time-picker"
+                            step="1"
+                            defaultValue="00:00:00"
+                            className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                            onChange={(e) => {
+                              console.log(e.target.value);
+                            }}
+                          />
+                        </Field>
+                      </FieldGroup>
                     );
                   }}
                 />
 
                 {/* Market ends */}
                 <form.Field
-                  name="marketBaseInput.marketStarts"
-                  children={() => {
+                  name="marketBaseInput.marketEnds"
+                  children={(field) => {
+                    const isInvalid =
+                      field.state.meta.isTouched && !field.state.meta.isValid;
+
                     return (
                       <Field>
                         <FieldGroup className="grid grid-cols-[8fr_2fr] gap-2">
@@ -376,6 +607,8 @@ export default function CreateMarketForm() {
                                   startMonth={new Date(2026, 0)}
                                   endMonth={new Date(2040, 0)}
                                   onSelect={(date) => {
+                                    console.log(date?.getTime());
+                                    field.handleChange(date!.getTime());
                                     setMarketEndDate(date);
                                     setIsEndMarketCalendarOpen(false);
                                   }}
@@ -394,6 +627,10 @@ export default function CreateMarketForm() {
                               step="1"
                               className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                             />
+
+                            {isInvalid && (
+                              <FieldError errors={field.state.meta.errors} />
+                            )}
                           </Field>
                         </FieldGroup>
                       </Field>
@@ -408,18 +645,18 @@ export default function CreateMarketForm() {
                     selector={(state) => state.values.marketBaseInput.outcomes}
                     children={(outcomes) => {
                       return (
-                        <Card className="mb-2">
-                          <CardHeader>Outcomes</CardHeader>
-                          <CardContent>
-                            <ul>
+                        <Item className="mb-2" variant={"outline"}>
+                          <ItemContent>
+                            <ItemTitle>Outcomes</ItemTitle>
+                            <ItemDescription>
                               {outcomes.map((outcome, i) => (
                                 <li key={i} className="capitalize list-decimal">
-                                  {outcome.title}
+                                  {`${i + 1}. ${outcome.title}`}
                                 </li>
                               ))}
-                            </ul>
-                          </CardContent>
-                        </Card>
+                            </ItemDescription>
+                          </ItemContent>
+                        </Item>
                       );
                     }}
                   />
@@ -445,10 +682,7 @@ export default function CreateMarketForm() {
                               onClick={() => {
                                 const val = outcomeRef.current?.value;
                                 if (!val) {
-                                  setIsAlertShowing(true);
-                                  setAlertMessage(
-                                    "Write something to add it to the outcomes",
-                                  );
+                                  return;
                                 } else {
                                   field.handleChange([
                                     ...(field.state.value ?? []),
@@ -468,6 +702,7 @@ export default function CreateMarketForm() {
                       );
                     }}
                   />
+                  <Button type="submit">Submit</Button>
                 </div>
               </div>
             </FieldGroup>
