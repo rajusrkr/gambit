@@ -75,8 +75,14 @@ const formSchema = z.object({
         .trim()
         .min(10, "Title should be at least 10 character long")
         .transform((val) => val.replace(/\s+/g, " ")),
-      description: z.string(),
-      settlementRules: z.string(),
+      description: z
+        .string()
+        .trim()
+        .min(20, "Description should be atleast 20 characters long"),
+      settlementRules: z
+        .string()
+        .trim()
+        .min(20, "Settlement rules should be at least 20 characters long"),
       category: z.enum(["sports", "crypto", "weather"]),
       outcomes: z.array(outcomeSchema),
       marketStarts: z.number(),
@@ -549,10 +555,6 @@ export default function CreateMarketForm() {
                 {/* Settlement rules */}
                 <form.Field
                   name="marketBaseInput.settlementRules"
-                  validators={{
-                    onSubmit: ({ value }) =>
-                      value.length < 5 ? "More required" : undefined,
-                  }}
                   children={(field) => {
                     const isInvalid =
                       field.state.meta.isTouched && !field.state.meta.isValid;
@@ -566,18 +568,14 @@ export default function CreateMarketForm() {
                           id={field.name}
                           aria-invalid={isInvalid}
                           placeholder="Market settlement rules"
+                          onBlur={field.handleBlur}
                           defaultValue={field.state.value}
                           onChange={(e) => {
                             field.handleChange(e.target.value);
                           }}
                         />
-                        {/* {isInvalid && (
+                        {isInvalid && (
                           <FieldError errors={field.state.meta.errors} />
-                        )} */}
-                        {!field.state.meta.isValid && (
-                          <em role="alert">
-                            {field.state.meta.errors.join(", ")}
-                          </em>
                         )}
                       </Field>
                     );
