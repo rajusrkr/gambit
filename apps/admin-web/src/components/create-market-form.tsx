@@ -16,7 +16,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -66,6 +65,7 @@ const outcomeSchema = z.object({
   volume: z.number(),
 });
 
+const MIN_MARKET_START = new Date().getTime();
 const formSchema = z.object({
   // Market base inputs, The common inputs
   marketBaseInput: z
@@ -85,11 +85,13 @@ const formSchema = z.object({
         .min(20, "Settlement rules should be at least 20 characters long"),
       category: z.enum(["sports", "crypto", "weather"]),
       outcomes: z.array(outcomeSchema),
-      marketStarts: z.number(),
+      marketStarts: z
+        .number()
+        .min(MIN_MARKET_START, "Select a valid market start time"),
       marketEnds: z.number(),
     })
     .refine((data) => data.marketStarts < data.marketEnds, {
-      message: "error in ndate field",
+      message: "Market end time should be after market starts",
       path: ["marketEnds"],
     }),
 
@@ -137,12 +139,7 @@ export default function CreateMarketForm() {
   });
 
   const outcomeRef = useRef<HTMLInputElement>(null);
-  const [marketStartDate, setMarketStartDate] = useState<Date | undefined>(
-    undefined,
-  );
-  const [marketEndDate, setMarketEndDate] = useState<Date | undefined>(
-    undefined,
-  );
+
   const [isStartMarketCalendarOpen, setIsStartMarketCalendarOpen] =
     useState(false);
   const [isEndMarketCalendarOpen, setIsEndMarketCalendarOpen] = useState(false);
@@ -197,7 +194,6 @@ export default function CreateMarketForm() {
                     <div
                       className="hover:cursor-pointer hover:bg-accent"
                       onClick={() => {
-                        console.log(coins.coin);
                         field.handleChange(coins.coin);
                         setCryptoSelectDialogOpen(false);
                       }}
@@ -275,7 +271,6 @@ export default function CreateMarketForm() {
                           onValueChange={(e) => {
                             field.handleChange(e);
                             const category = e;
-                            console.log(category);
                             switch (category) {
                               case "crypto":
                                 setCryptoSelectDialogOpen(true);
@@ -476,13 +471,13 @@ export default function CreateMarketForm() {
                             <Item variant={"outline"}>
                               <ItemContent>
                                 <ItemTitle>Market timings</ItemTitle>
-                                <ItemDescription className="flex">
-                                  <span>Starts: 12-12-2026, 12:59PM</span>
-                                  <Separator
-                                    orientation="vertical"
-                                    className=" mx-4 data-[orientation=vertical]:h-5"
-                                  />
-                                  <span>Ends: 12-12-2026, 2:29PM</span>
+                                <ItemDescription className="flex gap-4">
+                                  <span className="underline underline-offset-2">
+                                    Starts: 12-12-2026, 12:59PM
+                                  </span>
+                                  <span className="underline underline-offset-2">
+                                    Ends: 12-12-2026, 2:29PM
+                                  </span>
                                 </ItemDescription>
                               </ItemContent>
                             </Item>
@@ -510,8 +505,6 @@ export default function CreateMarketForm() {
                           type="text"
                           defaultValue={field.state.value}
                           onChange={(e) => {
-                            console.log(e.target.value.trim());
-
                             field.handleChange(e.target.value);
                           }}
                         />
@@ -586,62 +579,98 @@ export default function CreateMarketForm() {
                 <form.Field
                   name="marketBaseInput.marketStarts"
                   children={(field) => {
+                    const isInvalid =
+                      field.state.meta.isTouched && !field.state.meta.isValid;
+
                     return (
                       <FieldGroup className="grid grid-cols-[8fr_2fr] gap-2">
-                        <Field>
-                          <FieldLabel htmlFor="market-start-doptionalate">
-                            Market start date
-                          </FieldLabel>
-                          <Popover
-                            open={isStartMarketCalendarOpen}
-                            onOpenChange={setIsStartMarketCalendarOpen}
-                          >
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                id="date-picker-optional"
-                                className="w-32 justify-between font-normal"
-                              >
-                                {marketStartDate
-                                  ? format(marketStartDate, "PPP")
-                                  : "Select date"}
-                                <IconSelector />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent
-                              className="w-auto overflow-hidden p-0"
-                              align="start"
-                            >
-                              <Calendar
-                                mode="single"
-                                captionLayout="dropdown"
-                                startMonth={new Date(2026, 0)}
-                                endMonth={new Date(2040, 0)}
-                                onSelect={(date) => {
-                                  console.log(date);
-                                  field.handleChange(date!.getTime());
-                                  setMarketStartDate(date);
-                                  setIsStartMarketCalendarOpen(false);
-                                }}
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </Field>
-                        <Field className="w-32">
-                          <FieldLabel htmlFor="time-picker-optional">
-                            Market start time
-                          </FieldLabel>
-                          <Input
-                            type="time"
-                            id="market-start-time-picker"
-                            step="1"
-                            defaultValue="00:00:00"
-                            className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-                            onChange={(e) => {
-                              console.log(e.target.value);
-                            }}
-                          />
-                        </Field>
+                        <form.Subscribe
+                          selector={(state) =>
+                            state.values.marketBaseInput.marketStarts
+                          }
+                          children={(marketStarts) => {
+                            return (
+                              <Field data-invalid={isInvalid}>
+                                <FieldLabel htmlFor={field.name}>
+                                  Market start date
+                                </FieldLabel>
+                                <Popover
+                                  open={isStartMarketCalendarOpen}
+                                  onOpenChange={setIsStartMarketCalendarOpen}
+                                >
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      id="date-picker-optional"
+                                      className="w-32 justify-between font-normal"
+                                    >
+                                      {marketStarts
+                                        ? format(marketStarts, "PPP")
+                                        : "Select date"}
+                                      <IconSelector />
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent
+                                    className="w-auto overflow-hidden p-0"
+                                    align="start"
+                                  >
+                                    <Calendar
+                                      id={field.name}
+                                      mode="single"
+                                      captionLayout="dropdown"
+                                      startMonth={new Date(2026, 0)}
+                                      endMonth={new Date(2040, 0)}
+                                      onSelect={(date) => {
+                                        field.handleChange(date!.getTime());
+                                        setIsStartMarketCalendarOpen(false);
+                                      }}
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                                {isInvalid && (
+                                  <FieldError
+                                    errors={field.state.meta.errors}
+                                  />
+                                )}
+                              </Field>
+                            );
+                          }}
+                        />
+
+                        <form.Subscribe
+                          selector={(state) =>
+                            state.values.marketBaseInput.marketStarts
+                          }
+                          children={(marketStarts) => {
+                            return (
+                              <Field className="w-32">
+                                <FieldLabel htmlFor="market-start-time-picker">
+                                  Market start time
+                                </FieldLabel>
+                                <Input
+                                  type="time"
+                                  id="market-start-time-picker"
+                                  step="1"
+                                  defaultValue="00:00:00"
+                                  className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                                  onChange={(e) => {
+                                    const time = e.target.value;
+                                    const [hours, minutes, seconds] =
+                                      time.split(":");
+                                    const newStartDateAndTime = new Date(
+                                      marketStarts,
+                                    ).setHours(
+                                      parseInt(hours),
+                                      parseInt(minutes),
+                                      parseInt(seconds),
+                                    );
+                                    field.handleChange(newStartDateAndTime);
+                                  }}
+                                />
+                              </Field>
+                            );
+                          }}
+                        />
                       </FieldGroup>
                     );
                   }}
@@ -655,65 +684,95 @@ export default function CreateMarketForm() {
                       field.state.meta.isTouched && !field.state.meta.isValid;
 
                     return (
-                      <Field>
-                        <FieldGroup className="grid grid-cols-[8fr_2fr] gap-2">
-                          <Field>
-                            <FieldLabel htmlFor="market-end-date">
-                              Market end date
-                            </FieldLabel>
-                            <Popover
-                              open={isEndMarketCalendarOpen}
-                              onOpenChange={setIsEndMarketCalendarOpen}
-                            >
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  id="market-end-date-picker"
-                                  className="w-32 justify-between font-normal"
+                      <FieldGroup className="grid grid-cols-[8fr_2fr] gap-2">
+                        <form.Subscribe
+                          selector={(state) =>
+                            state.values.marketBaseInput.marketEnds
+                          }
+                          children={(marketEnds) => {
+                            return (
+                              <Field data-invalid={isInvalid}>
+                                <FieldLabel htmlFor={field.name}>
+                                  Market end date
+                                </FieldLabel>
+                                <Popover
+                                  open={isEndMarketCalendarOpen}
+                                  onOpenChange={setIsEndMarketCalendarOpen}
                                 >
-                                  {marketEndDate
-                                    ? format(marketEndDate, "PPP")
-                                    : "Select date"}
-                                  <IconSelector />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent
-                                className="w-auto overflow-hidden p-0"
-                                align="start"
-                              >
-                                <Calendar
-                                  mode="single"
-                                  captionLayout="dropdown"
-                                  startMonth={new Date(2026, 0)}
-                                  endMonth={new Date(2040, 0)}
-                                  onSelect={(date) => {
-                                    console.log(date?.getTime());
-                                    field.handleChange(date!.getTime());
-                                    setMarketEndDate(date);
-                                    setIsEndMarketCalendarOpen(false);
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      id="market-end-date-picker"
+                                      className="w-32 justify-between font-normal"
+                                    >
+                                      {marketEnds
+                                        ? format(marketEnds, "PPP")
+                                        : "Select date"}
+                                      <IconSelector />
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent
+                                    className="w-auto overflow-hidden p-0"
+                                    align="start"
+                                  >
+                                    <Calendar
+                                      id={field.name}
+                                      mode="single"
+                                      captionLayout="dropdown"
+                                      startMonth={new Date(2026, 0)}
+                                      endMonth={new Date(2040, 0)}
+                                      onSelect={(date) => {
+                                        field.handleChange(date!.getTime());
+                                        setIsEndMarketCalendarOpen(false);
+                                      }}
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                                {isInvalid && (
+                                  <FieldError
+                                    errors={field.state.meta.errors}
+                                  />
+                                )}
+                              </Field>
+                            );
+                          }}
+                        />
+
+                        <form.Subscribe
+                          selector={(state) =>
+                            state.values.marketBaseInput.marketEnds
+                          }
+                          children={(marketEnds) => {
+                            return (
+                              <Field className="w-32">
+                                <FieldLabel htmlFor="market-end-time-picker">
+                                  Market end time
+                                </FieldLabel>
+                                <Input
+                                  type="time"
+                                  id="market-end-time-picker"
+                                  defaultValue="00:00:00"
+                                  step="1"
+                                  className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                                  onChange={(e) => {
+                                    const time = e.target.value;
+                                    const [hours, minutes, seconds] =
+                                      time.split(":");
+                                    const newMarketEndTime = new Date(
+                                      marketEnds,
+                                    ).setHours(
+                                      parseInt(hours),
+                                      parseInt(minutes),
+                                      parseInt(seconds),
+                                    );
+                                    field.handleChange(newMarketEndTime);
                                   }}
                                 />
-                              </PopoverContent>
-                            </Popover>
-                          </Field>
-                          <Field className="w-32">
-                            <FieldLabel htmlFor="time-picker-optional">
-                              Market end time
-                            </FieldLabel>
-                            <Input
-                              type="time"
-                              id="market-end-time-picker"
-                              defaultValue="00:00:00"
-                              step="1"
-                              className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-                            />
-
-                            {isInvalid && (
-                              <FieldError errors={field.state.meta.errors} />
-                            )}
-                          </Field>
-                        </FieldGroup>
-                      </Field>
+                              </Field>
+                            );
+                          }}
+                        />
+                      </FieldGroup>
                     );
                   }}
                 />
