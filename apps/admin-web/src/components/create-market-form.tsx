@@ -92,7 +92,7 @@ const formSchema = z.object({
 
   //   This input only specific to the crypto category
   cryptoCategoryInput: z.object({
-    interval: z.string(),
+    interval: z.string().trim().min(2, "Select a valid interval"),
     cryptoName: z.string().trim().min(1, "Value is required, cannot be spaces"),
   }),
 });
@@ -306,7 +306,6 @@ export default function CreateMarketForm() {
                     );
                   }}
                 />
-
                 {/* Show input fields according to the market category */}
                 {/* Crypto */}
                 <form.Subscribe
@@ -369,12 +368,25 @@ export default function CreateMarketForm() {
                           <form.Field
                             name={"cryptoCategoryInput.interval"}
                             children={(field) => {
+                              const isInvalid =
+                                field.state.meta.isTouched &&
+                                !field.state.meta.isValid;
+
                               return (
-                                <Field className="w-full">
-                                  <FieldLabel htmlFor="crypto-interval">
+                                <Field
+                                  className="w-full"
+                                  data-invalid={isInvalid}
+                                >
+                                  <FieldLabel htmlFor={field.name}>
                                     Crypto chart interval
                                   </FieldLabel>
-                                  <Select>
+                                  <Select
+                                    name={field.name}
+                                    aria-invalid={isInvalid}
+                                    onValueChange={(value) => {
+                                      field.handleChange(value);
+                                    }}
+                                  >
                                     <SelectTrigger>
                                       <SelectValue placeholder="Select a interval" />
                                     </SelectTrigger>
@@ -385,6 +397,11 @@ export default function CreateMarketForm() {
                                         <SelectItem value="5m">5M</SelectItem>
                                       </SelectGroup>
                                     </SelectContent>
+                                    {isInvalid && (
+                                      <FieldError
+                                        errors={field.state.meta.errors}
+                                      />
+                                    )}
                                   </Select>
                                 </Field>
                               );
