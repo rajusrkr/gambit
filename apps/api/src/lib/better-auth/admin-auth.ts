@@ -27,13 +27,6 @@ const adminAuth = betterAuth({
           secure: true,
         },
       },
-      session_data: {
-        name: "admin_auth_data",
-        attributes: {
-          httpOnly: true,
-          secure: true,
-        },
-      },
     },
   },
   // Enable only email and password
@@ -105,12 +98,7 @@ const adminAuth = betterAuth({
     modelName: "adminAccount",
   },
   session: {
-    modelName: "adminSession",
-    cookieCache: {
-      enabled: true,
-      maxAge: 5 * 6,
-      refreshCache: true,
-    },
+    modelName: "adminSession"
   },
 });
 
