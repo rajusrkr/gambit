@@ -7,6 +7,15 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectGroup,
@@ -84,10 +93,13 @@ const formSchema = z.object({
         .trim()
         .min(20, "Settlement rules should be at least 20 characters long"),
       category: z.enum(["sports", "crypto", "weather"]),
-      outcomes: z.array(outcomeSchema),
+      outcomes: z.array(outcomeSchema).min(2, "Atleast 2 outcomes required"),
       marketStarts: z
         .number()
-        .min(MIN_MARKET_START, "Select a valid market start time"),
+        .min(
+          MIN_MARKET_START,
+          "Select a valid market start time. (Market start time should be greater than current time)",
+        ),
       marketEnds: z.number(),
     })
     .refine((data) => data.marketStarts < data.marketEnds, {
@@ -149,10 +161,35 @@ export default function CreateMarketForm() {
     setIsSportsMatchSelectionCommandDialogOpen,
   ] = useState(false);
 
+  const [isErrorMessageDialogOpen, setIsErrorMessageDialogOpen] =
+    useState(false);
+  const [errorMessage, setErrorMessage] = useState<{
+    title: string;
+    message: string;
+  }>({ title: "", message: "" });
+
   const [coinList, setCoinList] = useState<{ coin: string }[]>([]);
 
   return (
     <>
+      {/* Alert dialog */}
+      <AlertDialog
+        open={isErrorMessageDialogOpen}
+        onOpenChange={setIsErrorMessageDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{errorMessage.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {errorMessage.message}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Close</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Catgory crypto dialog*/}
       <Dialog
         open={cryptoSelectDialogOpen}
@@ -800,47 +837,82 @@ export default function CreateMarketForm() {
                     }}
                   />
                   {/* Market outcomes */}
-                  <form.Field
-                    name="marketBaseInput.outcomes"
-                    children={(field) => {
-                      const isInvalid =
-                        field.state.meta.isTouched && !field.state.meta.isValid;
-                      return (
-                        <Field>
-                          <div className="grid grid-cols-[8fr_2fr] gap-2">
-                            <Input
-                              name={field.name}
-                              id={field.name}
-                              aria-invalid={isInvalid}
-                              placeholder="Add outcomes"
-                              ref={outcomeRef}
-                              defaultValue={outcomeRef.current?.value}
-                            />
-                            <Button
-                              type="button"
-                              onClick={() => {
-                                const val = outcomeRef.current?.value;
-                                if (!val) {
-                                  return;
-                                } else {
-                                  field.handleChange([
-                                    ...(field.state.value ?? []),
-                                    { title: val, price: 0, volume: 0 },
-                                  ]);
-                                }
 
-                                if (outcomeRef.current) {
-                                  outcomeRef.current.value = "";
-                                }
-                              }}
-                            >
-                              Add
-                            </Button>
-                          </div>
-                        </Field>
+                  <form.Subscribe
+                    selector={(state) => state.values.marketBaseInput.outcomes}
+                    children={(outcomes) => {
+                      return (
+                        <form.Field
+                          name="marketBaseInput.outcomes"
+                          children={(field) => {
+                            const isInvalid =
+                              field.state.meta.isTouched &&
+                              !field.state.meta.isValid;
+                            return (
+                              <Field data-invalid={isInvalid}>
+                                <div className="grid grid-cols-[8fr_2fr] gap-2">
+                                  <Input
+                                    name={field.name}
+                                    id={field.name}
+                                    aria-invalid={isInvalid}
+                                    placeholder="Add outcomes"
+                                    ref={outcomeRef}
+                                    defaultValue={outcomeRef.current?.value}
+                                  />
+                                  <Button
+                                    type="button"
+                                    onClick={() => {
+                                      const val = outcomeRef.current?.value;
+                                      if (!val) {
+                                        setIsErrorMessageDialogOpen(true);
+                                        setErrorMessage({
+                                          title: "Outcome cannot be empty",
+                                          message:
+                                            "Empty value is not allowed in outcomes fields.",
+                                        });
+                                        return;
+                                      } else if (
+                                        outcomes.filter(
+                                          (outcome) =>
+                                            outcome.title.toLowerCase() ===
+                                            val.toLowerCase(),
+                                        ).length !== 0
+                                      ) {
+                                        setIsErrorMessageDialogOpen(true);
+                                        setErrorMessage({
+                                          title: "Duplicate outcome identified",
+                                          message:
+                                            "Duplicate outcome identified. Same outcome cannot be repeated.",
+                                        });
+                                        return;
+                                      } else {
+                                        field.handleChange([
+                                          ...(field.state.value ?? []),
+                                          { title: val, price: 0, volume: 0 },
+                                        ]);
+                                      }
+
+                                      if (outcomeRef.current) {
+                                        outcomeRef.current.value = "";
+                                      }
+                                    }}
+                                  >
+                                    Add
+                                  </Button>
+                                </div>
+                                {isInvalid && (
+                                  <FieldError
+                                    errors={field.state.meta.errors}
+                                  />
+                                )}
+                              </Field>
+                            );
+                          }}
+                        />
                       );
                     }}
                   />
+
                   <Button type="submit">Submit</Button>
                 </div>
               </div>
