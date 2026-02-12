@@ -24,5 +24,8 @@ app.all("/api/user/auth/*splat", toNodeHandler(userAuth));
 app.use(express.json());
 
 app.listen(3333, () => {
-  console.log("API listening on port: 3333");
+  console.log("API server listening on port: 3333");
 });
+
+import marketRouter from "./routes/market.route";
+app.use("/api/v0/market", marketRouter);
