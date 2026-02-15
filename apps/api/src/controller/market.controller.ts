@@ -24,6 +24,18 @@ interface MatchResponse {
   }[];
 }
 
+function getTime(timestamp: number) {
+  const dateFromTimeStamp = new Date(timestamp * 1000);
+
+  const hours = dateFromTimeStamp.getHours().toString().padStart(2, "0");
+  const minutes = dateFromTimeStamp.getMinutes().toString().padStart(2, "0");
+  const seconds = dateFromTimeStamp.getSeconds().toString().padStart(2, "0");
+
+  const time = `${hours}:${minutes}:${seconds}`;
+
+  return time;
+}
+
 export const fetchFootball = async (req: Request, res: Response) => {
   const urlData = req.query;
   const date = urlData.date;
@@ -32,6 +44,7 @@ export const fetchFootball = async (req: Request, res: Response) => {
     return res.status(400).json({
       success: false,
       message: "Valid date is required to fetch matches",
+      matches: [],
     });
   }
 
@@ -48,7 +61,9 @@ export const fetchFootball = async (req: Request, res: Response) => {
     if (matches.response.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "Unable to fetch matches, try again with proper inputs",
+        message:
+          "Unable to fetch matches for the selected date, try again with different one",
+        matches: [],
       });
     }
 
@@ -61,22 +76,24 @@ export const fetchFootball = async (req: Request, res: Response) => {
       )
       .map((filteredMatches) => ({
         matchId: filteredMatches.fixture.id,
-        timestamp: filteredMatches.fixture.timestamp,
+        timestamp: getTime(filteredMatches.fixture.timestamp),
         leagueName: filteredMatches.league.name,
-        teams: {
-          home: filteredMatches.teams.home.name,
-          away: filteredMatches.teams.away.name,
-        },
+        teamsHome: filteredMatches.teams.home.name,
+        teamsAway: filteredMatches.teams.away.name,
         status: {
           short: filteredMatches.fixture.status.short,
           long: filteredMatches.fixture.status.long,
         },
       }));
 
-    return res.status(200).json({ success: true, matches: filteredMatches });
+    return res.status(200).json({
+      success: true,
+      message: "Matches fetched successfully",
+      matches: filteredMatches,
+    });
   } catch (error) {
     return res
       .status(500)
-      .json({ success: false, message: "Internal server error" });
+      .json({ success: false, message: "Internal server error", matches: [] });
   }
 };

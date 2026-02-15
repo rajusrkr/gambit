@@ -34,18 +34,17 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "./ui/card";
+} from "@/components/ui/card";
 import z from "zod";
 import { useForm } from "@tanstack/react-form";
 import { useRef, useState } from "react";
-import { IconSearch, IconSelector } from "@tabler/icons-react";
+import { IconLoader2, IconSearch, IconSelector } from "@tabler/icons-react";
 import { format } from "date-fns";
 import {
   Dialog,
@@ -67,6 +66,10 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { cryptoCoins } from "@/lib/utils";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { FootballMatchDataTable } from "./foorball-match-data-table";
+import { footballMatchColumn } from "./football-match-table-column";
 
 const outcomeSchema = z.object({
   title: z.string(),
@@ -118,7 +121,20 @@ const formSchema = z.object({
 });
 type FormValues = z.infer<typeof formSchema>;
 
+interface FootballMatch {
+  matchId: string;
+  timestamp: string;
+  leagueName: string;
+  teamsHome: string;
+  teamsAway: string;
+}
+interface FootballMatchDataRes {
+  message: string;
+  matches: FootballMatch[];
+}
+
 export default function CreateMarketForm() {
+  // Form values
   const form = useForm({
     defaultValues: {
       marketBaseInput: {
@@ -150,8 +166,19 @@ export default function CreateMarketForm() {
     },
   });
 
-  const outcomeRef = useRef<HTMLInputElement>(null);
+  // Date with sports api format
+  const date = new Date();
+  const todayFormatted = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate()}`;
+  const tomorrow = new Date().setDate(date.getDate() + 1);
+  const tomorrowDate = new Date(tomorrow);
+  const tomorrowDateFormatted = `${tomorrowDate.getFullYear()}-${(tomorrowDate.getMonth() + 1).toString().padStart(2, "0")}-${tomorrowDate.getDate()}`;
 
+  // States
+  const outcomeRef = useRef<HTMLInputElement>(null);
+  const [activeMatchButton, setActiveFetchMatchButton] = useState<
+    number | null
+  >(null);
+  const [matchFetchDate, setMatchFetchDate] = useState("");
   const [isStartMarketCalendarOpen, setIsStartMarketCalendarOpen] =
     useState(false);
   const [isEndMarketCalendarOpen, setIsEndMarketCalendarOpen] = useState(false);
@@ -160,15 +187,38 @@ export default function CreateMarketForm() {
     sportsMatchSelectionCommandDialogOpen,
     setIsSportsMatchSelectionCommandDialogOpen,
   ] = useState(false);
-
   const [isErrorMessageDialogOpen, setIsErrorMessageDialogOpen] =
     useState(false);
   const [errorMessage, setErrorMessage] = useState<{
     title: string;
     message: string;
   }>({ title: "", message: "" });
-
   const [coinList, setCoinList] = useState<{ coin: string }[]>([]);
+
+  const fetchMatches = async (date: string): Promise<FootballMatchDataRes> => {
+    const res = await fetch(
+      `http://localhost:3333/api/v0/market/fetch-football?date=${date}`,
+      { credentials: "include" },
+    );
+    const response = await res.json();
+    if (!response.success) {
+      throw new Error(response.message.toString());
+    }
+    return response;
+  };
+  // call fetch match func using usemutation
+  const fetchMatchMutation = useMutation({
+    mutationFn: fetchMatches,
+    onSuccess: () => {
+      toast.success("Football matches fetched successfully", {
+        richColors: true,
+        position: "top-right",
+      });
+    },
+    onError: (err) => {
+      toast.error(err.message, { richColors: true, position: "top-right" });
+    },
+  });
 
   return (
     <>
@@ -255,21 +305,67 @@ export default function CreateMarketForm() {
         open={sportsMatchSelectionCommandDialogOpen}
         onOpenChange={setIsSportsMatchSelectionCommandDialogOpen}
       >
-        <DialogContent>
+        <DialogContent className="sm:max-w-3xl w-full">
           <DialogHeader>
-            <DialogTitle>Select a a football match</DialogTitle>
+            <DialogTitle>Select a football match</DialogTitle>
             <DialogDescription>
-              Search and select Crypto Currency from below list
+              Click on a date and search/select football match
             </DialogDescription>
-          </DialogHeader>
 
-          <div>
-            Lorem ipsum dolor sit amet consectetur adipisicing elit. Ut,
-            molestiae sapiente tempore eius architecto officiis nostrum. Tempore
-            cupiditate cumque dolore doloremque. Eveniet commodi vel soluta
-            omnis provident quis hic repellendus ex nemo eaque eius, ea cumque
-            error, sequi voluptatum. Itaque omnis facere eius quis hic
-            recusandae suscipit enim cupiditate accusantium?
+            <div className="grid grid-cols-2 gap-1">
+              <Button
+                variant={activeMatchButton === 0 ? "default" : "outline"}
+                onClick={() => {
+                  if (
+                    fetchMatchMutation.data &&
+                    fetchMatchMutation.data.matches.length !== 0 &&
+                    matchFetchDate === todayFormatted
+                  ) {
+                    return;
+                  }
+                  fetchMatchMutation.mutate(todayFormatted);
+                  setActiveFetchMatchButton(0);
+                  setMatchFetchDate(todayFormatted);
+                }}
+              >
+                {"Today's matches"}
+              </Button>
+              <Button
+                variant={activeMatchButton === 1 ? "default" : "outline"}
+                onClick={() => {
+                  if (
+                    fetchMatchMutation.data &&
+                    fetchMatchMutation.data.matches.length !== 0 &&
+                    matchFetchDate === tomorrowDateFormatted
+                  ) {
+                    return;
+                  }
+                  fetchMatchMutation.mutate(tomorrowDateFormatted);
+                  setActiveFetchMatchButton(1);
+                  setMatchFetchDate(tomorrowDateFormatted);
+                }}
+              >
+                {"Tomorrow's matches"}
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="overflow-hidden">
+            {fetchMatchMutation.isPending && (
+              <div className="flex justify-center">
+                <IconLoader2 className="animate-spin" />
+              </div>
+            )}
+            {fetchMatchMutation.data && fetchMatchMutation.data.matches && (
+              <div>
+                <div>
+                  <p>{`Matches fetched for date: ${matchFetchDate} (YYYY-MM-DD)`}</p>
+                </div>
+                <FootballMatchDataTable
+                  columns={footballMatchColumn}
+                  data={fetchMatchMutation.data.matches}
+                />
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
