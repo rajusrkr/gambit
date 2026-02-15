@@ -194,6 +194,7 @@ export default function CreateMarketForm() {
     message: string;
   }>({ title: "", message: "" });
   const [coinList, setCoinList] = useState<{ coin: string }[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchMatches = async (date: string): Promise<FootballMatchDataRes> => {
     const res = await fetch(
@@ -358,11 +359,31 @@ export default function CreateMarketForm() {
             {fetchMatchMutation.data && fetchMatchMutation.data.matches && (
               <div>
                 <div>
+                  <Input
+                    placeholder="Search matches by team name..."
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                    }}
+                  />
+                </div>
+                <div>
                   <p>{`Matches fetched for date: ${matchFetchDate} (YYYY-MM-DD)`}</p>
                 </div>
                 <FootballMatchDataTable
                   columns={footballMatchColumn}
-                  data={fetchMatchMutation.data.matches}
+                  data={
+                    searchTerm.trim().length !== 0
+                      ? fetchMatchMutation.data.matches.filter(
+                          (match) =>
+                            match.teamsAway
+                              .toLowerCase()
+                              .includes(searchTerm.toLowerCase()) ||
+                            match.teamsHome
+                              .toLowerCase()
+                              .includes(searchTerm.toLowerCase()),
+                        )
+                      : fetchMatchMutation.data.matches
+                  }
                 />
               </div>
             )}
