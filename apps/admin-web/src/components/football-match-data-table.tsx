@@ -15,21 +15,31 @@ import {
 } from "@/components/ui/table";
 
 import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 
 interface MatchDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  onSelectedRowChange?: (rows: TData[]) => void;
 }
 
 export function FootballMatchDataTable<TData, TValue>({
   columns,
   data,
+  onSelectedRowChange,
 }: MatchDataTableProps<TData, TValue>) {
+  const [rowSelection, setRowSelection] = useState({});
+
   const table = useReactTable({
     data,
     columns,
+    state: {
+      rowSelection
+    },
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    onRowSelectionChange: setRowSelection,
+    enableMultiRowSelection: false,
     initialState: {
       pagination: {
         pageSize: 8,
@@ -37,8 +47,15 @@ export function FootballMatchDataTable<TData, TValue>({
     },
   });
 
+  useEffect(() => {
+    const selectedRow = table
+      .getSelectedRowModel()
+      .rows.map((row) => row.original);
+    onSelectedRowChange?.(selectedRow);
+  }, [rowSelection, table, onSelectedRowChange]);
+
   return (
-    <div className="overflow-hidden rounded-md border">
+    <div className="overflow-hidden border">
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headergroup) => (

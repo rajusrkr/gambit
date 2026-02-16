@@ -1,4 +1,5 @@
 import { type ColumnDef } from "@tanstack/react-table";
+import { Checkbox } from "@/components/ui/checkbox";
 export type FootballMatch = {
   matchId: string;
   leagueName: string;
@@ -8,6 +9,17 @@ export type FootballMatch = {
 };
 
 export const footballMatchColumn: ColumnDef<FootballMatch>[] = [
+  {
+    id: "select",
+    header: "Select",
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="select table"
+      />
+    ),
+  },
   {
     accessorKey: "matchId",
     header: "Match Id",
