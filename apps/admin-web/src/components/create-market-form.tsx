@@ -68,7 +68,7 @@ import {
 import { cryptoCoins } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { FootballMatchDataTable } from "./foorball-match-data-table";
+import { FootballMatchDataTable } from "./football-match-data-table";
 import { footballMatchColumn } from "./football-match-table-column";
 
 const outcomeSchema = z.object({
@@ -78,48 +78,6 @@ const outcomeSchema = z.object({
 });
 
 const MIN_MARKET_START = new Date().getTime();
-const formSchema = z.object({
-  // Market base inputs, The common inputs
-  marketBaseInput: z
-    .object({
-      title: z
-        .string()
-        .trim()
-        .min(10, "Title should be at least 10 character long")
-        .transform((val) => val.replace(/\s+/g, " ")),
-      description: z
-        .string()
-        .trim()
-        .min(20, "Description should be atleast 20 characters long"),
-      settlementRules: z
-        .string()
-        .trim()
-        .min(20, "Settlement rules should be at least 20 characters long"),
-      category: z.enum(["sports", "crypto", "weather"]),
-      outcomes: z.array(outcomeSchema).min(2, "Atleast 2 outcomes required"),
-      marketStarts: z
-        .number()
-        .min(
-          MIN_MARKET_START,
-          "Select a valid market start time. (Market start time should be greater than current time)",
-        ),
-      marketEnds: z.number(),
-    })
-    .refine((data) => data.marketStarts < data.marketEnds, {
-      message: "Market end time should be after market starts",
-      path: ["marketEnds"],
-    }),
-
-  // This input only specific to the sports category
-  sportsCategoryInput: z.object({ matchId: z.string(), match: z.string() }),
-
-  //   This input only specific to the crypto category
-  cryptoCategoryInput: z.object({
-    interval: z.string().trim().min(2, "Select a valid interval"),
-    cryptoName: z.string().trim().min(1, "Value is required, cannot be spaces"),
-  }),
-});
-type FormValues = z.infer<typeof formSchema>;
 
 interface FootballMatch {
   matchId: string;
@@ -133,32 +91,102 @@ interface FootballMatchDataRes {
   matches: FootballMatch[];
 }
 
+const schema = z.discriminatedUnion("category", [
+  // Sports category
+  z
+    .object({
+      category: z.literal("sports"),
+      title: z
+        .string()
+        .trim()
+        .min(10, "Title should be at least 10 characters long"),
+      description: z
+        .string()
+        .trim()
+        .min(15, "Description should be at least 20 characters long"),
+      settlementRules: z
+        .string()
+        .trim()
+        .min(15, "Settlement rules should be at least 20 characters long"),
+      outcomes: z
+        .array(outcomeSchema)
+        .min(2, "At least 2 outcomes is required"),
+      marketStarts: z
+        .number()
+        .min(
+          MIN_MARKET_START,
+          "Select a valid market start time. (Market start time should be greater than current time)",
+        ),
+      marketEnds: z.number(),
+      matchId: z.string().trim().min(7, "Selected match id is not valid"),
+      match: z
+        .string()
+        .trim()
+        .min(5, "A valid match length should be atleast 5 characters long"),
+    })
+    .refine((data) => data.marketStarts < data.marketEnds, {
+      message: "Market end should be greater than market start time",
+      path: ["marketEnds"],
+    }),
+  // Crypto category
+  z
+    .object({
+      category: z.literal("crypto"),
+      title: z
+        .string()
+        .trim()
+        .min(10, "Title should be at least 10 characters long"),
+      description: z
+        .string()
+        .trim()
+        .min(15, "Description should be at least 20 characters long"),
+      settlementRules: z
+        .string()
+        .trim()
+        .min(15, "Settlement rules should be at least 20 characters long"),
+      outcomes: z
+        .array(outcomeSchema)
+        .min(2, "At least 2 outcomes is required"),
+      marketStarts: z
+        .number()
+        .min(
+          MIN_MARKET_START,
+          "Select a valid market start time. (Market start time should be greater than current time)",
+        ),
+      marketEnds: z.number(),
+      cryptoName: z
+        .string()
+        .trim()
+        .min(3, "A valid crypto name should be atleast 3 characters long"),
+      interval: z
+        .string()
+        .trim()
+        .length(2, "Interval length can't be more or less than 2 characters"),
+    })
+    .refine((data) => data.marketStarts < data.marketEnds, {
+      message: "Market end should be greater than start time",
+      path: ["marketEnds"],
+    }),
+]);
+
+type FormSchema = z.infer<typeof schema>;
+
 export default function CreateMarketForm() {
-  // Form values
   const form = useForm({
     defaultValues: {
-      marketBaseInput: {
-        title: "",
-        description: "",
-        settlementRules: "",
-        category: "",
-        outcomes: [] as z.infer<typeof outcomeSchema>[],
-        marketStarts: 0,
-        marketEnds: 0,
-      },
-
-      sportsCategoryInput: {
-        matchId: "",
-        match: "",
-      } as FormValues["sportsCategoryInput"],
-      cryptoCategoryInput: {
-        cryptoName: "",
-        interval: "",
-      } as FormValues["cryptoCategoryInput"],
-    },
+      category: "crypto",
+      title: "",
+      description: "",
+      settlementRules: "",
+      outcomes: [] as z.infer<typeof outcomeSchema>[],
+      marketStarts: 0,
+      marketEnds: 0,
+      cryptoName: "",
+      interval: "",
+    } as FormSchema,
 
     validators: {
-      onSubmit: formSchema,
+      onSubmit: schema,
     },
 
     onSubmit: async ({ value }) => {
@@ -255,7 +283,7 @@ export default function CreateMarketForm() {
           </DialogHeader>
 
           <form.Field
-            name="cryptoCategoryInput.cryptoName"
+            name="cryptoName"
             children={(field) => {
               return (
                 <>
@@ -401,6 +429,8 @@ export default function CreateMarketForm() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
+              console.log(form.getAllErrors());
+
               form.handleSubmit();
             }}
           >
@@ -411,7 +441,7 @@ export default function CreateMarketForm() {
               <div className="grid md:grid-cols-2 grid-cols-1 gap-4">
                 {/* Market category */}
                 <form.Field
-                  name="marketBaseInput.category"
+                  name="category"
                   children={(field) => {
                     const isInvalid =
                       field.state.meta.isTouched && !field.state.meta.isValid;
@@ -421,9 +451,10 @@ export default function CreateMarketForm() {
                         <FieldLabel htmlFor={field.name}>Catgeory</FieldLabel>
                         <Select
                           name={field.name}
-                          defaultValue={field.state.value}
+                          value={field.state.value}
                           onValueChange={(e) => {
-                            field.handleChange(e);
+                            form.reset();
+                            field.handleChange(e as "sports" | "crypto");
                             const category = e;
                             switch (category) {
                               case "crypto":
@@ -465,15 +496,17 @@ export default function CreateMarketForm() {
                 {/* Crypto */}
                 <form.Subscribe
                   selector={(state) => ({
-                    category: state.values.marketBaseInput.category,
-                    cryptoName: state.values.cryptoCategoryInput.cryptoName,
+                    category: state.values.category,
+                    cryptoName:
+                      state.values.category === "crypto" &&
+                      state.values.cryptoName,
                   })}
                   children={(values) => {
                     return (
                       <>
                         {values.category === "crypto" && (
                           <form.Field
-                            name="cryptoCategoryInput.cryptoName"
+                            name="cryptoName"
                             children={(field) => {
                               const isInvalid =
                                 field.state.meta.isTouched &&
@@ -488,7 +521,7 @@ export default function CreateMarketForm() {
                                     id={field.name}
                                     name={field.name}
                                     readOnly
-                                    defaultValue={values.cryptoName}
+                                    value={values.cryptoName.toString()}
                                     onBlur={field.handleBlur}
                                     aria-invalid={isInvalid}
                                     placeholder="Select a crypto"
@@ -513,15 +546,17 @@ export default function CreateMarketForm() {
                 />
                 <form.Subscribe
                   selector={(state) => ({
-                    category: state.values.marketBaseInput.category,
-                    cryptoName: state.values.cryptoCategoryInput.cryptoName,
+                    category: state.values.category,
+                    cryptoName:
+                      state.values.category === "crypto" &&
+                      state.values.cryptoName,
                   })}
                   children={(values) => {
                     return (
                       <>
                         {values.category === "crypto" && (
                           <form.Field
-                            name={"cryptoCategoryInput.interval"}
+                            name={"interval"}
                             children={(field) => {
                               const isInvalid =
                                 field.state.meta.isTouched &&
@@ -571,9 +606,12 @@ export default function CreateMarketForm() {
                 {/* Match id, match, match starts, match ends */}
                 <form.Subscribe
                   selector={(state) => ({
-                    category: state.values.marketBaseInput.category,
-                    match: state.values.sportsCategoryInput.match,
-                    matchId: state.values.sportsCategoryInput.matchId,
+                    category: state.values.category,
+                    match:
+                      state.values.category === "sports" && state.values.match,
+                    matchId:
+                      state.values.category === "sports" &&
+                      state.values.matchId,
                   })}
                   children={(values) => {
                     return (
@@ -615,7 +653,7 @@ export default function CreateMarketForm() {
                 />
                 <form.Subscribe
                   selector={(state) => ({
-                    category: state.values.marketBaseInput.category,
+                    category: state.values.category,
                   })}
                   children={(values) => {
                     return (
@@ -644,7 +682,7 @@ export default function CreateMarketForm() {
 
                 {/* Market title */}
                 <form.Field
-                  name="marketBaseInput.title"
+                  name="title"
                   children={(field) => {
                     const isInvalid =
                       field.state.meta.isTouched && !field.state.meta.isValid;
@@ -657,7 +695,7 @@ export default function CreateMarketForm() {
                           placeholder="Market title"
                           aria-invalid={isInvalid}
                           type="text"
-                          defaultValue={field.state.value}
+                          value={field.state.value}
                           onChange={(e) => {
                             field.handleChange(e.target.value);
                           }}
@@ -672,7 +710,7 @@ export default function CreateMarketForm() {
 
                 {/* Description */}
                 <form.Field
-                  name="marketBaseInput.description"
+                  name="description"
                   children={(field) => {
                     const isInvalid =
                       field.state.meta.isTouched && !field.state.meta.isValid;
@@ -686,7 +724,7 @@ export default function CreateMarketForm() {
                           id={field.name}
                           placeholder="Market description"
                           aria-invalid={isInvalid}
-                          defaultValue={field.state.value}
+                          value={field.state.value}
                           onChange={(e) => {
                             field.handleChange(e.target.value);
                           }}
@@ -701,7 +739,7 @@ export default function CreateMarketForm() {
 
                 {/* Settlement rules */}
                 <form.Field
-                  name="marketBaseInput.settlementRules"
+                  name="settlementRules"
                   children={(field) => {
                     const isInvalid =
                       field.state.meta.isTouched && !field.state.meta.isValid;
@@ -716,7 +754,7 @@ export default function CreateMarketForm() {
                           aria-invalid={isInvalid}
                           placeholder="Market settlement rules"
                           onBlur={field.handleBlur}
-                          defaultValue={field.state.value}
+                          value={field.state.value}
                           onChange={(e) => {
                             field.handleChange(e.target.value);
                           }}
@@ -731,7 +769,7 @@ export default function CreateMarketForm() {
 
                 {/* Market starts */}
                 <form.Field
-                  name="marketBaseInput.marketStarts"
+                  name="marketStarts"
                   children={(field) => {
                     const isInvalid =
                       field.state.meta.isTouched && !field.state.meta.isValid;
@@ -739,9 +777,7 @@ export default function CreateMarketForm() {
                     return (
                       <FieldGroup className="grid grid-cols-[8fr_2fr] gap-2">
                         <form.Subscribe
-                          selector={(state) =>
-                            state.values.marketBaseInput.marketStarts
-                          }
+                          selector={(state) => state.values.marketStarts}
                           children={(marketStarts) => {
                             return (
                               <Field data-invalid={isInvalid}>
@@ -792,9 +828,7 @@ export default function CreateMarketForm() {
                         />
 
                         <form.Subscribe
-                          selector={(state) =>
-                            state.values.marketBaseInput.marketStarts
-                          }
+                          selector={(state) => state.values.marketStarts}
                           children={(marketStarts) => {
                             return (
                               <Field className="w-32">
@@ -832,7 +866,7 @@ export default function CreateMarketForm() {
 
                 {/* Market ends */}
                 <form.Field
-                  name="marketBaseInput.marketEnds"
+                  name="marketEnds"
                   children={(field) => {
                     const isInvalid =
                       field.state.meta.isTouched && !field.state.meta.isValid;
@@ -840,9 +874,7 @@ export default function CreateMarketForm() {
                     return (
                       <FieldGroup className="grid grid-cols-[8fr_2fr] gap-2">
                         <form.Subscribe
-                          selector={(state) =>
-                            state.values.marketBaseInput.marketEnds
-                          }
+                          selector={(state) => state.values.marketEnds}
                           children={(marketEnds) => {
                             return (
                               <Field data-invalid={isInvalid}>
@@ -893,9 +925,7 @@ export default function CreateMarketForm() {
                         />
 
                         <form.Subscribe
-                          selector={(state) =>
-                            state.values.marketBaseInput.marketEnds
-                          }
+                          selector={(state) => state.values.marketEnds}
                           children={(marketEnds) => {
                             return (
                               <Field className="w-32">
@@ -935,7 +965,7 @@ export default function CreateMarketForm() {
                 <div>
                   {/* Sub to market outcomes */}
                   <form.Subscribe
-                    selector={(state) => state.values.marketBaseInput.outcomes}
+                    selector={(state) => state.values.outcomes}
                     children={(outcomes) => {
                       return (
                         <Item className="mb-2" variant={"outline"}>
@@ -956,11 +986,11 @@ export default function CreateMarketForm() {
                   {/* Market outcomes */}
 
                   <form.Subscribe
-                    selector={(state) => state.values.marketBaseInput.outcomes}
+                    selector={(state) => state.values.outcomes}
                     children={(outcomes) => {
                       return (
                         <form.Field
-                          name="marketBaseInput.outcomes"
+                          name="outcomes"
                           children={(field) => {
                             const isInvalid =
                               field.state.meta.isTouched &&
@@ -1050,8 +1080,8 @@ export default function CreateMarketForm() {
             <CardContent className="text-muted-foreground text-sm">
               <form.Subscribe
                 selector={(state) => ({
-                  category: state.values.marketBaseInput.category,
-                  title: state.values.marketBaseInput.title,
+                  category: state.values.category,
+                  title: state.values.title,
                 })}
                 children={(values) => {
                   return (
