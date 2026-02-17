@@ -81,7 +81,8 @@ const MIN_MARKET_START = new Date().getTime();
 
 interface FootballMatch {
   matchId: string;
-  timestamp: string;
+  timestamp: number;
+  time: string;
   leagueName: string;
   teamsHome: string;
   teamsAway: string;
@@ -89,6 +90,13 @@ interface FootballMatch {
 interface FootballMatchDataRes {
   message: string;
   matches: FootballMatch[];
+}
+interface SelectedRow {
+  teamsAway: string;
+  teamsHome: string;
+  time: string;
+  timestamp: number;
+  matchId: string;
 }
 
 const schema = z.discriminatedUnion("category", [
@@ -116,13 +124,16 @@ const schema = z.discriminatedUnion("category", [
         .min(
           MIN_MARKET_START,
           "Select a valid market start time. (Market start time should be greater than current time)",
-        ),
-      marketEnds: z.number(),
+        ).transform((data) => Math.floor(data / 1000)),
+      marketEnds: z.number().transform((data) => Math.floor(data / 1000)),
       matchId: z.string().trim().min(7, "Selected match id is not valid"),
       match: z
         .string()
         .trim()
         .min(5, "A valid match length should be atleast 5 characters long"),
+
+      matchStarts: z.number(),
+      matchEnds: z.number()
     })
     .refine((data) => data.marketStarts < data.marketEnds, {
       message: "Market end should be greater than market start time",
@@ -152,8 +163,8 @@ const schema = z.discriminatedUnion("category", [
         .min(
           MIN_MARKET_START,
           "Select a valid market start time. (Market start time should be greater than current time)",
-        ),
-      marketEnds: z.number(),
+        ).transform((data) => Math.floor(data / 1000)),
+      marketEnds: z.number().transform((data) => Math.floor(data / 1000)),
       cryptoName: z
         .string()
         .trim()
@@ -190,7 +201,8 @@ export default function CreateMarketForm() {
     },
 
     onSubmit: async ({ value }) => {
-      console.log(value);
+      const data = schema.safeParse(value);
+      console.log(data.data);
     },
   });
 
@@ -223,6 +235,7 @@ export default function CreateMarketForm() {
   }>({ title: "", message: "" });
   const [coinList, setCoinList] = useState<{ coin: string }[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRow, setSelectedRow] = useState<SelectedRow[]>([]);
 
   const fetchMatches = async (date: string): Promise<FootballMatchDataRes> => {
     const res = await fetch(
@@ -334,7 +347,7 @@ export default function CreateMarketForm() {
         open={sportsMatchSelectionCommandDialogOpen}
         onOpenChange={setIsSportsMatchSelectionCommandDialogOpen}
       >
-        <DialogContent className="sm:max-w-3xl w-full">
+        <DialogContent className="sm:max-w-4xl w-full">
           <DialogHeader>
             <DialogTitle>Select a football match</DialogTitle>
             <DialogDescription>
@@ -386,6 +399,9 @@ export default function CreateMarketForm() {
             )}
             {fetchMatchMutation.data && fetchMatchMutation.data.matches && (
               <div>
+                  <div>
+                    <p className="py-1 text-md font-semibold">{`Matches fetched for date: ${matchFetchDate} (YYYY-MM-DD)`}</p>
+                  </div>
                 <div>
                   <Input
                     placeholder="Search matches by team name..."
@@ -393,9 +409,6 @@ export default function CreateMarketForm() {
                       setSearchTerm(e.target.value);
                     }}
                   />
-                </div>
-                <div>
-                  <p>{`Matches fetched for date: ${matchFetchDate} (YYYY-MM-DD)`}</p>
                 </div>
                 <FootballMatchDataTable
                   columns={footballMatchColumn}
@@ -412,7 +425,35 @@ export default function CreateMarketForm() {
                         )
                       : fetchMatchMutation.data.matches
                   }
+                  onSelectedRowChange={setSelectedRow}
                 />
+
+                <div>
+                  <Button
+                  disabled = {selectedRow.length === 0}
+                    onClick={() => {
+                      form.setFieldValue(
+                        "match",
+                        `${selectedRow[0].teamsHome} vs ${selectedRow[0].teamsAway}`,
+                      );
+                      form.setFieldValue(
+                        "matchId",
+                        selectedRow[0].matchId.toString(),
+                      );
+                      form.setFieldValue(
+                        "matchStarts",
+                        selectedRow[0].timestamp,
+                      );
+                      form.setFieldValue(
+                        "matchEnds",
+                        selectedRow[0].timestamp + 90 * 60,
+                      );
+                      setIsSportsMatchSelectionCommandDialogOpen(false)
+                    }}
+                  >
+                    Confirm
+                  </Button>
+                </div>
               </div>
             )}
           </div>
@@ -429,8 +470,6 @@ export default function CreateMarketForm() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              console.log(form.getAllErrors());
-
               form.handleSubmit();
             }}
           >
@@ -618,33 +657,76 @@ export default function CreateMarketForm() {
                       <>
                         {values.category === "sports" && (
                           <FieldGroup className="grid grid-cols-[5fr_5fr]">
-                            <Field>
-                              <FieldLabel htmlFor="selected-match">
-                                Match
-                              </FieldLabel>
-                              <Input
-                                readOnly
-                                name="selected-match"
-                                id="selected-match"
-                                placeholder="Select match"
-                                onClick={() => {
-                                  setIsSportsMatchSelectionCommandDialogOpen(
-                                    true,
-                                  );
-                                }}
-                              />
-                            </Field>
-                            <Field>
-                              <FieldLabel htmlFor="selected-match-id">
-                                Match Id
-                              </FieldLabel>
-                              <Input
-                                readOnly
-                                name="selected-match-id"
-                                id="selected-match-id"
-                                placeholder="Match Id"
-                              />
-                            </Field>
+                            <form.Field
+                              name="match"
+                              children={(field) => {
+                                const isInvalid =
+                                  field.state.meta.isTouched &&
+                                  !field.state.meta.isValid;
+                                return (
+                                  <Field>
+                                    <FieldLabel htmlFor="selected-match">
+                                      Match
+                                    </FieldLabel>
+                                    <Input
+                                      readOnly
+                                      name="selected-match"
+                                      id="selected-match"
+                                      placeholder="Select match"
+                                      value={
+                                        values.match != null
+                                          ? values.match.toString()
+                                          : ""
+                                      }
+                                      onClick={() => {
+                                        setIsSportsMatchSelectionCommandDialogOpen(
+                                          true,
+                                        );
+                                      }}
+                                    />
+                                    {isInvalid && (
+                                      <FieldError
+                                        errors={field.state.meta.errors}
+                                      />
+                                    )}
+                                  </Field>
+                                );
+                              }}
+                            />
+
+                            <form.Field
+                              name="matchId"
+                              children={(field) => {
+                                const isInvalid =
+                                  field.state.meta.isTouched &&
+                                  !field.state.meta.isValid;
+
+                                return (
+                                  <Field>
+                                    <FieldLabel htmlFor="selected-match-id">
+                                      Match Id
+                                    </FieldLabel>
+                                    <Input
+                                      readOnly
+                                      name="selected-match-id"
+                                      id="selected-match-id"
+                                      placeholder="Match Id"
+                                      value={
+                                        values.matchId !== null
+                                          ? values.matchId?.toString()
+                                          : ""
+                                      }
+                                    />
+
+                                    {isInvalid && (
+                                      <FieldError
+                                        errors={field.state.meta.errors}
+                                      />
+                                    )}
+                                  </Field>
+                                );
+                              }}
+                            />
                           </FieldGroup>
                         )}
                       </>
@@ -654,6 +736,12 @@ export default function CreateMarketForm() {
                 <form.Subscribe
                   selector={(state) => ({
                     category: state.values.category,
+                    matchStarts:
+                      state.values.category === "sports" &&
+                      state.values.matchStarts,
+                    matchEnds:
+                      state.values.category === "sports" &&
+                      state.values.matchEnds,
                   })}
                   children={(values) => {
                     return (
@@ -662,15 +750,67 @@ export default function CreateMarketForm() {
                           <FieldGroup>
                             <Item variant={"outline"}>
                               <ItemContent>
-                                <ItemTitle>Market timings</ItemTitle>
-                                <ItemDescription className="flex gap-4">
-                                  <span className="underline underline-offset-2">
-                                    Starts: 12-12-2026, 12:59PM
-                                  </span>
-                                  <span className="underline underline-offset-2">
-                                    Ends: 12-12-2026, 2:29PM
-                                  </span>
-                                </ItemDescription>
+                                <ItemTitle>Match timing</ItemTitle>
+
+                                <form.Field
+                                  name="matchStarts"
+                                  children={(field) => {
+                                    const isInvalid =
+                                      field.state.meta.isTouched &&
+                                      !field.state.meta.isValid;
+
+                                    return (
+                                      <div>
+                                        <p>
+                                          Match starts:{" "}
+                                          <span className="underline">
+                                            {values.matchStarts != null
+                                              ? new Date(
+                                                  Number(values.matchStarts) *
+                                                    1000,
+                                                ).toLocaleString()
+                                              : ""}
+                                          </span>
+                                        </p>
+                                        {isInvalid && (
+                                          <FieldError
+                                            errors={field.state.meta.errors}
+                                          />
+                                        )}
+                                      </div>
+                                    );
+                                  }}
+                                />
+
+                                <form.Field
+                                  name="matchEnds"
+                                  children={(field) => {
+                                    const isInvalid =
+                                      field.state.meta.isTouched &&
+                                      !field.state.meta.isValid;
+
+                                    return (
+                                      <div>
+                                        <p>
+                                          Match ends:{" "}
+                                          <span className="underline">
+                                            {values.matchStarts != null
+                                              ? new Date(
+                                                  Number(values.matchEnds) *
+                                                    1000,
+                                                ).toLocaleString()
+                                              : ""}
+                                          </span>
+                                        </p>
+                                        {isInvalid && (
+                                          <FieldError
+                                            errors={field.state.meta.errors}
+                                          />
+                                        )}
+                                      </div>
+                                    );
+                                  }}
+                                />
                               </ItemContent>
                             </Item>
                           </FieldGroup>
@@ -1060,7 +1200,7 @@ export default function CreateMarketForm() {
                     }}
                   />
 
-                  <Button type="submit">Submit</Button>
+                  <Button type="submit" className="mt-2">Submit & Create new market</Button>
                 </div>
               </div>
             </FieldGroup>

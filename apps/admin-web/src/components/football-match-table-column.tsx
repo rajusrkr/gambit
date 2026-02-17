@@ -5,7 +5,8 @@ export type FootballMatch = {
   leagueName: string;
   teamsHome: string;
   teamsAway: string;
-  timestamp: string;
+  time: string;
+  timestamp: number;
 };
 
 export const footballMatchColumn: ColumnDef<FootballMatch>[] = [
@@ -37,7 +38,11 @@ export const footballMatchColumn: ColumnDef<FootballMatch>[] = [
     header: "Team -Away",
   },
   {
+    accessorKey: "time",
+    header: "Time (24-hrs)"
+  },
+  {
     accessorKey: "timestamp",
-    header: "Time (24-hour)",
+    header: "Time (UTC secs)",
   },
 ];

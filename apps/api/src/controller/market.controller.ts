@@ -76,7 +76,8 @@ export const fetchFootball = async (req: Request, res: Response) => {
       )
       .map((filteredMatches) => ({
         matchId: filteredMatches.fixture.id,
-        timestamp: getTime(filteredMatches.fixture.timestamp),
+        timestamp: filteredMatches.fixture.timestamp,
+        time: getTime(filteredMatches.fixture.timestamp),
         leagueName: filteredMatches.league.name,
         teamsHome: filteredMatches.teams.home.name,
         teamsAway: filteredMatches.teams.away.name,
