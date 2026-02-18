@@ -65,7 +65,7 @@ import {
   ItemDescription,
   ItemTitle,
 } from "@/components/ui/item";
-import { cryptoCoins } from "@/lib/utils";
+import { BACKEND_URL, cryptoCoins } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { FootballMatchDataTable } from "./football-match-data-table";
@@ -124,7 +124,8 @@ const schema = z.discriminatedUnion("category", [
         .min(
           MIN_MARKET_START,
           "Select a valid market start time. (Market start time should be greater than current time)",
-        ).transform((data) => Math.floor(data / 1000)),
+        )
+        .transform((data) => Math.floor(data / 1000)),
       marketEnds: z.number().transform((data) => Math.floor(data / 1000)),
       matchId: z.string().trim().min(7, "Selected match id is not valid"),
       match: z
@@ -133,7 +134,7 @@ const schema = z.discriminatedUnion("category", [
         .min(5, "A valid match length should be atleast 5 characters long"),
 
       matchStarts: z.number(),
-      matchEnds: z.number()
+      matchEnds: z.number(),
     })
     .refine((data) => data.marketStarts < data.marketEnds, {
       message: "Market end should be greater than market start time",
@@ -163,7 +164,8 @@ const schema = z.discriminatedUnion("category", [
         .min(
           MIN_MARKET_START,
           "Select a valid market start time. (Market start time should be greater than current time)",
-        ).transform((data) => Math.floor(data / 1000)),
+        )
+        .transform((data) => Math.floor(data / 1000)),
       marketEnds: z.number().transform((data) => Math.floor(data / 1000)),
       cryptoName: z
         .string()
@@ -203,6 +205,17 @@ export default function CreateMarketForm() {
     onSubmit: async ({ value }) => {
       const data = schema.safeParse(value);
       console.log(data.data);
+      const res = await fetch(`${BACKEND_URL}/market/create-market`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(value),
+      });
+
+      const response = await res.json();
+      console.log(response);
     },
   });
 
@@ -239,7 +252,7 @@ export default function CreateMarketForm() {
 
   const fetchMatches = async (date: string): Promise<FootballMatchDataRes> => {
     const res = await fetch(
-      `http://localhost:3333/api/v0/market/fetch-football?date=${date}`,
+      `${BACKEND_URL}/market/fetch-football?date=${date}`,
       { credentials: "include" },
     );
     const response = await res.json();
@@ -399,9 +412,9 @@ export default function CreateMarketForm() {
             )}
             {fetchMatchMutation.data && fetchMatchMutation.data.matches && (
               <div>
-                  <div>
-                    <p className="py-1 text-md font-semibold">{`Matches fetched for date: ${matchFetchDate} (YYYY-MM-DD)`}</p>
-                  </div>
+                <div>
+                  <p className="py-1 text-md font-semibold">{`Matches fetched for date: ${matchFetchDate} (YYYY-MM-DD)`}</p>
+                </div>
                 <div>
                   <Input
                     placeholder="Search matches by team name..."
@@ -430,7 +443,7 @@ export default function CreateMarketForm() {
 
                 <div>
                   <Button
-                  disabled = {selectedRow.length === 0}
+                    disabled={selectedRow.length === 0}
                     onClick={() => {
                       form.setFieldValue(
                         "match",
@@ -448,7 +461,7 @@ export default function CreateMarketForm() {
                         "matchEnds",
                         selectedRow[0].timestamp + 90 * 60,
                       );
-                      setIsSportsMatchSelectionCommandDialogOpen(false)
+                      setIsSportsMatchSelectionCommandDialogOpen(false);
                     }}
                   >
                     Confirm
@@ -1200,7 +1213,9 @@ export default function CreateMarketForm() {
                     }}
                   />
 
-                  <Button type="submit" className="mt-2">Submit & Create new market</Button>
+                  <Button type="submit" className="mt-2">
+                    Submit & Create new market
+                  </Button>
                 </div>
               </div>
             </FieldGroup>

@@ -379,3 +379,5 @@ export const cryptoCoins = [
     coin: "kSHIB_USDC_PERP",
   },
 ];
+
+export const BACKEND_URL = import.meta.env.VITE_API_URL;
