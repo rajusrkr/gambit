@@ -43,6 +43,10 @@ interface AdminSession {
   id: string;
 }
 
+interface CreateMarketDBTransactionRes {
+  marketId: string;
+}
+
 const MIN_MARKET_START = new Date().getTime();
 const outcomeSchema = z.object({
   title: z.string(),
@@ -222,50 +226,52 @@ export const createMarket = async (req: Request, res: Response) => {
   }
 
   try {
-    const dbTransaction = await db.transaction(async (tx) => {
-      const [newMarket] = await tx
-        .insert(market)
-        .values({
-          category: marketData.category,
-          description: marketData.description,
-          settlementRules: marketData.settlementRules,
-          title: marketData.title,
-          outcomes: marketData.outcomes,
-          marketEnds: marketData.marketEnds,
-          marketStarts: marketData.marketStarts,
-          createdBy: adminSession.id,
-        })
-        .returning({ id: market.id });
+    const dbTransactionResult = await db.transaction(
+      async (tx): Promise<CreateMarketDBTransactionRes> => {
+        const [newMarket] = await tx
+          .insert(market)
+          .values({
+            category: marketData.category,
+            description: marketData.description,
+            settlementRules: marketData.settlementRules,
+            title: marketData.title,
+            outcomes: marketData.outcomes,
+            marketEnds: marketData.marketEnds,
+            marketStarts: marketData.marketStarts,
+            createdBy: adminSession.id,
+          })
+          .returning({ marketId: market.id });
 
-      switch (marketData.category) {
-        case "crypto":
-          await tx.insert(cryptoCategory).values({
-            cryptoName: marketData.cryptoName,
-            interval: marketData.interval,
-            marketId: newMarket.id,
-          });
-          break;
+        switch (marketData.category) {
+          case "crypto":
+            await tx.insert(cryptoCategory).values({
+              cryptoName: marketData.cryptoName,
+              interval: marketData.interval,
+              marketId: newMarket.marketId,
+            });
+            break;
 
-        case "sports":
-          await tx.insert(sportsCategory).values({
-            match: marketData.match,
-            matchId: marketData.matchId,
-            matchStarts: marketData.matchStarts,
-            matchEnds: marketData.matchEnds,
-            marketId: newMarket.id,
-          });
-          break;
-        default:
-          throw new Error("Unknow category, please provide a valid category");
-      }
+          case "sports":
+            await tx.insert(sportsCategory).values({
+              match: marketData.match,
+              matchId: marketData.matchId,
+              matchStarts: marketData.matchStarts,
+              matchEnds: marketData.matchEnds,
+              marketId: newMarket.marketId,
+            });
+            break;
+          default:
+            throw new Error("Unknow category, please provide a valid category");
+        }
 
-      return newMarket.id;
-    });
+        return { marketId: newMarket.marketId };
+      },
+    );
 
     return res.status(200).json({
       success: true,
       message: "Market created successfully",
-      marketId: dbTransaction,
+      marketId: dbTransactionResult.marketId,
     });
   } catch (error) {
     console.error(error);
