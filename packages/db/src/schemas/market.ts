@@ -23,8 +23,9 @@ export const marketCategory = pgEnum("market_category", [
 export const marketStatus = pgEnum("market_status", [
   "open",
   "settled",
-  "resolving",
+  "new_order_paused",
   "open_soon",
+  "canceled",
 ]);
 
 export const market = pgTable("market", {
