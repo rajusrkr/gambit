@@ -275,7 +275,7 @@ export const createMarket = async (req: Request, res: Response) => {
         const openQueueDelay = marketData.marketStarts - currentTimeInSecs;
         // New order pause delay
         const newOrderPausedDelay =
-          marketData.marketEnds - 60 * 60 - currentTimeInSecs; // Minus 1 hour from market ends
+          (marketData.marketEnds - 60 * 60) - currentTimeInSecs; // Minus 1 hour from market ends
         // Close delay
         const closeQueueDelay = marketData.marketEnds - currentTimeInSecs;
 
@@ -283,17 +283,17 @@ export const createMarket = async (req: Request, res: Response) => {
           startMarketQueue.add(
             "market_open",
             { marketId: newMarket.marketId },
-            { delay: openQueueDelay },
+            { delay: openQueueDelay * 1000 }, // converted to milisecs
           ),
           newOrderPausedQueue.add(
             "market_pause",
             { marketId: newMarket.marketId },
-            { delay: newOrderPausedDelay },
+            { delay: newOrderPausedDelay * 1000 }, // converted to milisecs
           ),
           closeMarketQueue.add(
             "market_close",
             { marketId: newMarket.marketId },
-            { delay: closeQueueDelay },
+            { delay: closeQueueDelay * 1000 }, // converted to milisecs
           ),
         ]);
 
