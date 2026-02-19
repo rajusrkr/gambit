@@ -1,6 +1,11 @@
 import { cryptoCategory, db, market, sportsCategory } from "@repo/db";
 import { Request, Response } from "express";
 import { z } from "zod";
+import {
+  closeMarketQueue,
+  newOrderPausedQueue,
+  startMarketQueue,
+} from "../lib/redis";
 
 interface MatchResponse {
   response: {
@@ -263,6 +268,34 @@ export const createMarket = async (req: Request, res: Response) => {
           default:
             throw new Error("Unknow category, please provide a valid category");
         }
+
+        // Current time in secs
+        const currentTimeInSecs = Math.floor(new Date().getTime() / 1000);
+        // Open delay
+        const openQueueDelay = marketData.marketStarts - currentTimeInSecs;
+        // New order pause delay
+        const newOrderPausedDelay =
+          marketData.marketEnds - 60 * 60 - currentTimeInSecs; // Minus 1 hour from market ends
+        // Close delay
+        const closeQueueDelay = marketData.marketEnds - currentTimeInSecs;
+
+        await Promise.all([
+          startMarketQueue.add(
+            "market_open",
+            { marketId: newMarket.marketId },
+            { delay: openQueueDelay },
+          ),
+          newOrderPausedQueue.add(
+            "market_pause",
+            { marketId: newMarket.marketId },
+            { delay: newOrderPausedDelay },
+          ),
+          closeMarketQueue.add(
+            "market_close",
+            { marketId: newMarket.marketId },
+            { delay: closeQueueDelay },
+          ),
+        ]);
 
         return { marketId: newMarket.marketId };
       },
