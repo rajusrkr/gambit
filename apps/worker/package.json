@@ -1,0 +1,23 @@
+{
+  "name": "worker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "node dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@repo/db": "*",
+    "axios": "^1.13.5",
+    "bullmq": "^5.69.3",
+    "dotenv": "^17.3.1",
+    "drizzle-orm": "^0.45.1",
+    "groq-sdk": "^0.37.0",
+    "ioredis": "^5.9.3"
+  }
+}
