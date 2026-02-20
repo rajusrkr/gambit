@@ -55,10 +55,14 @@ class MarketQueue {
     marketStatus: MarketStatus;
   }) {
     try {
-      await db
+      const update = await db
         .update(market)
         .set({ marketStatus: marketStatus })
         .where(eq(market.id, marketId));
+
+      if (update.rowCount === 0) {
+        throw new Error(`Market with id: ${marketId} was not found.`);
+      }
     } catch (error) {
       throw new Error(
         `Unable to change status for market id: ${marketId}, Reason: ${error instanceof Error ? error.message.toString() : "Internal problem"}`,
