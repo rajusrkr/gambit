@@ -125,7 +125,7 @@
       },
     },
     "apps/worker": {
-      "name": "@repo/worker",
+      "name": "worker",
       "version": "1.0.0",
       "dependencies": {
         "@repo/db": "*",

@@ -269,37 +269,41 @@ export const createMarket = async (req: Request, res: Response) => {
             throw new Error("Unknow category, please provide a valid category");
         }
 
-        // Current time in secs
-        const currentTimeInSecs = Math.floor(new Date().getTime() / 1000);
-        // Open delay
-        const openQueueDelay = marketData.marketStarts - currentTimeInSecs;
-        // New order pause delay
-        const newOrderPausedDelay =
-          (marketData.marketEnds - 60 * 60) - currentTimeInSecs; // Minus 1 hour from market ends
-        // Close delay
-        const closeQueueDelay = marketData.marketEnds - currentTimeInSecs;
-
-        await Promise.all([
-          startMarketQueue.add(
-            "market_open",
-            { marketId: newMarket.marketId },
-            { delay: openQueueDelay * 1000 }, // converted to milisecs
-          ),
-          newOrderPausedQueue.add(
-            "market_pause",
-            { marketId: newMarket.marketId },
-            { delay: newOrderPausedDelay * 1000 }, // converted to milisecs
-          ),
-          closeMarketQueue.add(
-            "market_close",
-            { marketId: newMarket.marketId },
-            { delay: closeQueueDelay * 1000 }, // converted to milisecs
-          ),
-        ]);
-
         return { marketId: newMarket.marketId };
       },
     );
+
+    // TODO: Later add a market events table, from there a worker can pull a market and add that to the queue
+    // =============================
+    // Entering events into queue
+    // =============================
+    // Current time in secs
+    const currentTimeInSecs = Math.floor(new Date().getTime() / 1000);
+    // Open delay
+    const openQueueDelay = marketData.marketStarts - currentTimeInSecs;
+    // New order pause delay
+    const newOrderPausedDelay =
+      marketData.marketEnds - 60 * 60 - currentTimeInSecs; // Minus 1 hour from market ends
+    // Close delay
+    const closeQueueDelay = marketData.marketEnds - currentTimeInSecs;
+
+    await Promise.all([
+      startMarketQueue.add(
+        "market_open",
+        { marketId: dbTransactionResult.marketId },
+        { delay: openQueueDelay * 1000 }, // converted to milisecs
+      ),
+      newOrderPausedQueue.add(
+        "market_pause",
+        { marketId: dbTransactionResult.marketId },
+        { delay: newOrderPausedDelay * 1000 }, // converted to milisecs
+      ),
+      closeMarketQueue.add(
+        "market_close",
+        { marketId: dbTransactionResult.marketId },
+        { delay: closeQueueDelay * 1000 }, // converted to milisecs
+      ),
+    ]);
 
     return res.status(200).json({
       success: true,
