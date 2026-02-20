@@ -50,6 +50,11 @@ const userAuth = betterAuth({
         required: true,
         defaultValue: false,
       },
+      walletBalance: {
+        type: "number",
+        required: true,
+        defaultValue: 0
+      }
     },
   },
   plugins: [twoFactor(), username()],
