@@ -91,7 +91,7 @@ export function UserLoginForm({
         <CardContent className="grid p-0 md:grid-cols-[6fr_4fr]">
           <div className="bg-muted relative hidden md:block">
             <img
-              src="https://images.unsplash.com/photo-1614121181207-4b6c334d353d?q=80&w=1476&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+              src="https://images.unsplash.com/photo-1546519638-68e109498ffc?q=80&w=1490&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
               alt="Image"
               className="absolute inset-0 h-full w-full object-cover"
             />

@@ -4,6 +4,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { twoFactor, username } from "better-auth/plugins";
 import { userSchema } from "@repo/db";
+import { sendAdminVerificationEmail } from "../node-mailer";
 
 const userAuth = betterAuth({
   database: drizzleAdapter(db, {
@@ -32,7 +33,13 @@ const userAuth = betterAuth({
     sendOnSignUp: true,
     expiresIn: 10 * 60,
     autoSignInAfterVerification: true,
-    sendVerificationEmail: async ({ user, url }) => {},
+    sendVerificationEmail: async ({ user, url }) => {
+      sendAdminVerificationEmail({
+        subject: "Verify your email",
+        to: user.email,
+        url,
+      });
+    },
   },
   user: {
     changeEmail: {
@@ -53,8 +60,8 @@ const userAuth = betterAuth({
       walletBalance: {
         type: "number",
         required: true,
-        defaultValue: 0
-      }
+        defaultValue: 0,
+      },
     },
   },
   plugins: [twoFactor(), username()],
