@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "unique_position_idx" ON "position" USING btree ("position_taken_by","position_taken_for","position_taken_in");
