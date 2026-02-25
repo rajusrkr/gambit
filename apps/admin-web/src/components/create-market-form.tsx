@@ -71,12 +71,6 @@ import { toast } from "sonner";
 import { FootballMatchDataTable } from "./football-match-data-table";
 import { footballMatchColumn } from "./football-match-table-column";
 
-const outcomeSchema = z.object({
-  title: z.string(),
-  price: z.number(),
-  volume: z.number(),
-});
-
 const MIN_MARKET_START = new Date().getTime();
 
 interface FootballMatch {
@@ -117,7 +111,7 @@ const schema = z.discriminatedUnion("category", [
         .trim()
         .min(15, "Settlement rules should be at least 20 characters long"),
       outcomes: z
-        .array(outcomeSchema)
+        .array(z.string())
         .min(2, "At least 2 outcomes is required"),
       marketStarts: z
         .number()
@@ -157,7 +151,7 @@ const schema = z.discriminatedUnion("category", [
         .trim()
         .min(15, "Settlement rules should be at least 20 characters long"),
       outcomes: z
-        .array(outcomeSchema)
+        .array(z.string())
         .min(2, "At least 2 outcomes is required"),
       marketStarts: z
         .number()
@@ -191,7 +185,7 @@ export default function CreateMarketForm() {
       title: "",
       description: "",
       settlementRules: "",
-      outcomes: [] as z.infer<typeof outcomeSchema>[],
+      outcomes: [],
       marketStarts: 0,
       marketEnds: 0,
       cryptoName: "",
@@ -205,17 +199,17 @@ export default function CreateMarketForm() {
     onSubmit: async ({ value }) => {
       const data = schema.safeParse(value);
       console.log(data.data);
-      const res = await fetch(`${BACKEND_URL}/market/create-market`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify(value),
-      });
+      // const res = await fetch(`${BACKEND_URL}/market/create-market`, {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      //   credentials: "include",
+      //   body: JSON.stringify(value),
+      // });
 
-      const response = await res.json();
-      console.log(response);
+      // const response = await res.json();
+      // console.log(response);
     },
   });
 
@@ -1127,7 +1121,7 @@ export default function CreateMarketForm() {
                             <ItemDescription>
                               {outcomes.map((outcome, i) => (
                                 <li key={i} className="capitalize list-decimal">
-                                  {`${i + 1}. ${outcome.title}`}
+                                  {`${i + 1}. ${outcome}`}
                                 </li>
                               ))}
                             </ItemDescription>
@@ -1174,7 +1168,7 @@ export default function CreateMarketForm() {
                                       } else if (
                                         outcomes.filter(
                                           (outcome) =>
-                                            outcome.title.toLowerCase() ===
+                                            outcome.toLowerCase() ===
                                             val.toLowerCase(),
                                         ).length !== 0
                                       ) {
@@ -1188,7 +1182,7 @@ export default function CreateMarketForm() {
                                       } else {
                                         field.handleChange([
                                           ...(field.state.value ?? []),
-                                          { title: val, price: 0, volume: 0 },
+                                          val,
                                         ]);
                                       }
 
