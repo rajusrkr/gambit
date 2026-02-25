@@ -110,9 +110,7 @@ const schema = z.discriminatedUnion("category", [
         .string()
         .trim()
         .min(15, "Settlement rules should be at least 20 characters long"),
-      outcomes: z
-        .array(z.string())
-        .min(2, "At least 2 outcomes is required"),
+      outcomes: z.array(z.string()).min(2, "At least 2 outcomes is required"),
       marketStarts: z
         .number()
         .min(
@@ -150,9 +148,7 @@ const schema = z.discriminatedUnion("category", [
         .string()
         .trim()
         .min(15, "Settlement rules should be at least 20 characters long"),
-      outcomes: z
-        .array(z.string())
-        .min(2, "At least 2 outcomes is required"),
+      outcomes: z.array(z.string()).min(2, "At least 2 outcomes is required"),
       marketStarts: z
         .number()
         .min(
@@ -198,18 +194,17 @@ export default function CreateMarketForm() {
 
     onSubmit: async ({ value }) => {
       const data = schema.safeParse(value);
-      console.log(data.data);
-      // const res = await fetch(`${BACKEND_URL}/market/create-market`, {
-      //   method: "POST",
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //   },
-      //   credentials: "include",
-      //   body: JSON.stringify(value),
-      // });
+      const res = await fetch(`${BACKEND_URL}/market/create-market`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(data.data),
+      });
 
-      // const response = await res.json();
-      // console.log(response);
+      const response = await res.json();
+      console.log(response);
     },
   });
 

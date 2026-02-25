@@ -1,4 +1,10 @@
-import { cryptoCategory, db, market, sportsCategory } from "@repo/db";
+import {
+  cryptoCategory,
+  db,
+  market,
+  marketOutcomes,
+  sportsCategory,
+} from "@repo/db";
 import { Request, Response } from "express";
 import { z } from "zod";
 import {
@@ -6,6 +12,22 @@ import {
   newOrderPausedQueue,
   startMarketQueue,
 } from "../lib/redis";
+
+interface GetMarketVolumeAndPricesArr {
+  prices: any[];
+  volumes: number[];
+}
+
+function getMarketVolumeAndPricesArr(
+  outcomeArrLength: number,
+): GetMarketVolumeAndPricesArr {
+  const prices = Array.from({ length: outcomeArrLength }).map(
+    () => 1 / outcomeArrLength,
+  );
+  const volumes = Array.from({ length: outcomeArrLength }).map(() => 0);
+
+  return { prices, volumes };
+}
 
 interface MatchResponse {
   response: {
@@ -52,12 +74,7 @@ interface CreateMarketDBTransactionRes {
   marketId: string;
 }
 
-const MIN_MARKET_START = new Date().getTime();
-const outcomeSchema = z.object({
-  title: z.string(),
-  price: z.number(),
-  volume: z.number(),
-});
+const MIN_MARKET_START = Math.floor(new Date().getTime() / 1000);
 
 const schema = z.discriminatedUnion("category", [
   // Sports category
@@ -76,17 +93,14 @@ const schema = z.discriminatedUnion("category", [
         .string()
         .trim()
         .min(15, "Settlement rules should be at least 20 characters long"),
-      outcomes: z
-        .array(outcomeSchema)
-        .min(2, "At least 2 outcomes is required"),
+      outcomes: z.array(z.string()).min(2, "At least 2 outcomes is required"),
       marketStarts: z
         .number()
         .min(
           MIN_MARKET_START,
           "Select a valid market start time. (Market start time should be greater than current time)",
-        )
-        .transform((data) => Math.floor(data / 1000)),
-      marketEnds: z.number().transform((data) => Math.floor(data / 1000)),
+        ),
+      marketEnds: z.number(),
       matchId: z.string().trim().min(7, "Selected match id is not valid"),
       match: z
         .string()
@@ -116,17 +130,14 @@ const schema = z.discriminatedUnion("category", [
         .string()
         .trim()
         .min(15, "Settlement rules should be at least 20 characters long"),
-      outcomes: z
-        .array(outcomeSchema)
-        .min(2, "At least 2 outcomes is required"),
+      outcomes: z.array(z.string()).min(2, "At least 2 outcomes is required"),
       marketStarts: z
         .number()
         .min(
           MIN_MARKET_START,
           "Select a valid market start time. (Market start time should be greater than current time)",
-        )
-        .transform((data) => Math.floor(data / 1000)),
-      marketEnds: z.number().transform((data) => Math.floor(data / 1000)),
+        ),
+      marketEnds: z.number(),
       cryptoName: z
         .string()
         .trim()
@@ -240,12 +251,21 @@ export const createMarket = async (req: Request, res: Response) => {
             description: marketData.description,
             settlementRules: marketData.settlementRules,
             title: marketData.title,
-            outcomes: marketData.outcomes,
             marketEnds: marketData.marketEnds,
             marketStarts: marketData.marketStarts,
             createdBy: adminSession.id,
           })
           .returning({ marketId: market.id });
+
+        await tx.insert(marketOutcomes).values({
+          liquidityParameter: 1000,
+          volume: getMarketVolumeAndPricesArr(marketData.outcomes.length)
+            .volumes,
+          prices: getMarketVolumeAndPricesArr(marketData.outcomes.length)
+            .prices,
+          titles: marketData.outcomes,
+          marketId: newMarket.marketId,
+        });
 
         switch (marketData.category) {
           case "crypto":
