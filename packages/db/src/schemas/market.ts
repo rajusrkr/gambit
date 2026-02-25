@@ -1,5 +1,7 @@
 import {
   bigint,
+  decimal,
+  integer,
   jsonb,
   pgEnum,
   pgTable,
@@ -52,6 +54,18 @@ export const market = pgTable("market", {
     .$onUpdate(() => new Date())
     .notNull(),
 });
+
+// Outcomes
+export const marketOutcomes = pgTable("outcomes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  marketId: uuid("market_id").references(() => market.id, {onDelete: "cascade"}),
+
+  liquidityParameter: integer("liquidity_parameter").notNull(),
+  titles: text("title").array().notNull(),
+  quantities: integer("quantities").notNull(),
+  prices: decimal("prices", {precision: 36, scale: 18})
+})
+
 
 // Sports category
 export const sportsCategory = pgTable("sports_category", {

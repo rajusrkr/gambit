@@ -50,6 +50,13 @@
       "when": 1771832702900,
       "tag": "0006_wise_kulan_gath",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1772002498740,
+      "tag": "0007_ambiguous_shooting_star",
+      "breakpoints": true
     }
   ]
 }
