@@ -1,0 +1,1 @@
+ALTER TABLE "outcomes" ALTER COLUMN "market_id" SET NOT NULL;

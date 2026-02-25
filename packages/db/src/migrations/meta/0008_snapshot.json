@@ -1,6 +1,6 @@
 {
-  "id": "6e955a31-7697-41bd-b1a6-0a6ac2fe4c14",
-  "prevId": "c46ec265-bdf2-4852-b259-679433571d0b",
+  "id": "49a75338-80f9-4ab0-9305-3035bf8406ae",
+  "prevId": "6e955a31-7697-41bd-b1a6-0a6ac2fe4c14",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -646,12 +646,6 @@
           "name": "category",
           "type": "market_category",
           "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "outcomes": {
-          "name": "outcomes",
-          "type": "jsonb",
           "primaryKey": false,
           "notNull": true
         },

@@ -11,12 +11,6 @@ import {
 } from "drizzle-orm/pg-core";
 import { admin } from "./admin";
 
-interface Outcome {
-  title: string;
-  price: number;
-  volume: number;
-}
-
 export const marketCategory = pgEnum("market_category", [
   "sports",
   "crypto",
@@ -36,7 +30,6 @@ export const market = pgTable("market", {
   description: text("description").notNull(),
   settlementRules: text("settlement_rules").notNull(),
   category: marketCategory("category").notNull(),
-  outcomes: jsonb("outcomes").$type<Outcome[]>().notNull(),
   winner: text("winner"),
   marketStatus: marketStatus("status").notNull().default("open_soon"),
 
@@ -58,14 +51,15 @@ export const market = pgTable("market", {
 // Outcomes
 export const marketOutcomes = pgTable("outcomes", {
   id: uuid("id").primaryKey().defaultRandom(),
-  marketId: uuid("market_id").references(() => market.id, {onDelete: "cascade"}),
+  marketId: uuid("market_id").references(() => market.id, {
+    onDelete: "cascade",
+  }).notNull(),
 
   liquidityParameter: integer("liquidity_parameter").notNull(),
   titles: text("title").array().notNull(),
-  quantities: integer("quantities").notNull(),
-  prices: decimal("prices", {precision: 36, scale: 18})
-})
-
+  volume: integer("volume").array().notNull(),
+  prices: decimal("prices", { precision: 36, scale: 18, mode: "number" }).array().notNull(),
+});
 
 // Sports category
 export const sportsCategory = pgTable("sports_category", {

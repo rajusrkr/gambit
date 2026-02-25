@@ -1,6 +1,6 @@
 {
-  "id": "6e955a31-7697-41bd-b1a6-0a6ac2fe4c14",
-  "prevId": "c46ec265-bdf2-4852-b259-679433571d0b",
+  "id": "8d227b9f-7844-423c-958c-4f20f677cc63",
+  "prevId": "49a75338-80f9-4ab0-9305-3035bf8406ae",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -649,12 +649,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "outcomes": {
-          "name": "outcomes",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
         "winner": {
           "name": "winner",
           "type": "text",
@@ -738,7 +732,7 @@
           "name": "market_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "liquidity_parameter": {
           "name": "liquidity_parameter",
