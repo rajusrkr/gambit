@@ -2,7 +2,6 @@ import {
   bigint,
   decimal,
   integer,
-  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -51,14 +50,18 @@ export const market = pgTable("market", {
 // Outcomes
 export const marketOutcomes = pgTable("outcomes", {
   id: uuid("id").primaryKey().defaultRandom(),
-  marketId: uuid("market_id").references(() => market.id, {
-    onDelete: "cascade",
-  }).notNull(),
+  marketId: uuid("market_id")
+    .references(() => market.id, {
+      onDelete: "cascade",
+    })
+    .notNull(),
 
   liquidityParameter: integer("liquidity_parameter").notNull(),
   titles: text("title").array().notNull(),
   volume: integer("volume").array().notNull(),
-  prices: decimal("prices", { precision: 36, scale: 18, mode: "number" }).array().notNull(),
+  prices: decimal("prices", { precision: 36, scale: 18, mode: "string" })
+    .array()
+    .notNull(),
 });
 
 // Sports category
