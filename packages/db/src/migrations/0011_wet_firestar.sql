@@ -1,0 +1,1 @@
+ALTER TABLE "position" DROP COLUMN "total_qty_and_avg_price";

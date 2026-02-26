@@ -1,6 +1,6 @@
 import {
-  bigint,
-  jsonb,
+  decimal,
+  integer,
   pgEnum,
   pgTable,
   text,
@@ -10,12 +10,6 @@ import {
 } from "drizzle-orm/pg-core";
 import { market } from "./market";
 import { user } from "./user";
-
-interface TotalQtyAndAvgPrice {
-  qty: number;
-  avgPrice: number;
-  atTotalCost: number;
-}
 
 export const positionStatus = pgEnum("position_status", [
   "open",
@@ -40,11 +34,20 @@ export const position = pgTable(
       .references(() => market.id, { onDelete: "cascade" })
       .notNull(),
     positionTakenFor: text("position_taken_for").notNull(),
-    totalQtyAndAvgPrice: jsonb("total_qty_and_avg_price")
-      .$type<TotalQtyAndAvgPrice>()
-      .notNull(),
 
-    pnl: bigint("pnl", { mode: "number" }),
+    qty: integer("qty").notNull(),
+    atTotalCost: decimal("at_total_cost", {
+      precision: 36,
+      scale: 18,
+      mode: "string",
+    }).notNull(),
+    avgPrice: decimal("avg_price", {
+      precision: 36,
+      scale: 18,
+      mode: "string",
+    }).notNull(),
+
+    pnl: decimal("pnl", { precision: 36, scale: 18, mode: "string" }),
     positionStatus: positionStatus("position_status").notNull(),
 
     createdAt: timestamp("created_at").defaultNow(),

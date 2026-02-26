@@ -78,6 +78,27 @@
       "when": 1772095027187,
       "tag": "0010_curved_captain_flint",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1772095171698,
+      "tag": "0011_wet_firestar",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1772095579206,
+      "tag": "0012_spotty_scorpion",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1772095999042,
+      "tag": "0013_nostalgic_thunderbolt",
+      "breakpoints": true
     }
   ]
 }
