@@ -71,6 +71,13 @@
       "when": 1772021331215,
       "tag": "0009_medical_the_liberteens",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1772095027187,
+      "tag": "0010_curved_captain_flint",
+      "breakpoints": true
     }
   ]
 }

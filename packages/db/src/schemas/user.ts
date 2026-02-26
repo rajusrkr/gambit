@@ -4,8 +4,8 @@ import {
   text,
   timestamp,
   boolean,
-  integer,
   index,
+  decimal,
 } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
@@ -24,9 +24,15 @@ export const user = pgTable("user", {
   displayUsername: text("display_username"),
   isFullNameVisible: boolean("is_full_name_visible").default(true).notNull(),
   isUsernameVisible: boolean("is_username_visible").default(false).notNull(),
-  walletBalance: integer("wallet_balance").default(0).notNull(),
+  walletBalance: decimal("wallet_balance", {
+    precision: 36,
+    scale: 18,
+    mode: "string",
+  })
+    .default("0")
+    .notNull(),
 });
-
+11;
 export const session = pgTable(
   "session",
   {
