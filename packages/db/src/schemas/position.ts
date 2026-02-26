@@ -50,8 +50,10 @@ export const position = pgTable(
     pnl: decimal("pnl", { precision: 36, scale: 18, mode: "string" }),
     positionStatus: positionStatus("position_status").notNull(),
 
-    createdAt: timestamp("created_at").defaultNow(),
-    updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).$onUpdate(
+      () => new Date(),
+    ),
   },
   (table) => ({
     uniquePosition: uniqueIndex("unique_position_idx").on(

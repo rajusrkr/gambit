@@ -12,9 +12,9 @@ import { market } from "./market";
 import { user } from "./user";
 
 interface Outcomes {
-  title: string,
-  volume: number,
-  price: string
+  title: string;
+  volume: number;
+  price: string;
 }
 
 export const orderType = pgEnum("order_type", ["buy", "sell"]);
@@ -49,6 +49,10 @@ export const order = pgTable("order", {
   orderFailureReason: text("order_failure_reason"),
 
   // Timestamps
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).$onUpdate(
+    () => new Date(),
+  ),
 });

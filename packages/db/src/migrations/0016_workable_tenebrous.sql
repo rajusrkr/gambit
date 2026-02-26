@@ -1,0 +1,1 @@
+ALTER TABLE "market" ALTER COLUMN "updated_at" SET DATA TYPE timestamp with time zone;
