@@ -99,6 +99,13 @@
       "when": 1772095999042,
       "tag": "0013_nostalgic_thunderbolt",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1772096193297,
+      "tag": "0014_greedy_deathstrike",
+      "breakpoints": true
     }
   ]
 }
