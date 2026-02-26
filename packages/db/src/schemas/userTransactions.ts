@@ -29,11 +29,6 @@ export const userTransactions = pgTable("user_transactions", {
     scale: 18,
     mode: "string",
   }).notNull(),
-  newBalance: decimal("new_balance", {
-    precision: 36,
-    scale: 18,
-    mode: "string",
-  }).notNull(),
 
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
