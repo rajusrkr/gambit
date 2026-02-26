@@ -1,8 +1,19 @@
-import { db, market, order, position, userSchema } from "@repo/db";
+import {
+  db,
+  market,
+  marketOutcomes,
+  order,
+  position,
+  userSchema,
+  userTransactions,
+} from "@repo/db";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { Request, Response } from "express";
 import { z } from "zod";
 import { LMSRLogic } from "../lib/lmsr";
+
+import { Decimal } from "decimal.js";
+Decimal.set({ precision: 36 });
 
 class ApiError extends Error {
   public statusCode: number;
@@ -41,133 +52,156 @@ export const buyOrder = async (req: Request, res: Response) => {
   }
 
   try {
-    const dbTransactionResult = await db.transaction(async (tx) => {
-      const [getUser] = await tx
-        .select({ id: userSchema.user.id })
-        .from(userSchema.user)
-        .where(eq(userSchema.user.id, getUserId))
-        .limit(1);
+    const dbTransactionResult = await db.transaction(
+      async (tx): Promise<{ orderId: string }> => {
+        const [getUser] = await tx
+          .select({ id: userSchema.user.id })
+          .from(userSchema.user)
+          .where(eq(userSchema.user.id, getUserId))
+          .limit(1);
 
-      if (!getUser) {
-        throw new ApiError("No user found from received data", 400);
-      }
+        if (!getUser) {
+          throw new ApiError("No user found from received data", 400);
+        }
 
-      console.log("user check done");
-      
+        const [getMarketOutcomeAndMarketStatus] = await tx
+          .select({
+            marketTitle: market.title,
+            status: market.marketStatus,
+            titles: marketOutcomes.titles,
+            prices: marketOutcomes.prices,
+            volumes: marketOutcomes.volume,
+          })
+          .from(marketOutcomes)
+          .innerJoin(
+            market,
+            and(
+              eq(marketOutcomes.marketId, data.marketId),
+              eq(market.marketStatus, "open"),
+            ),
+          )
+          .for("update");
 
-      const [getMarket] = await tx
-        .select({ outcomes: market.outcomes })
-        .from(market)
-        .where(
-          and(eq(market.id, data.marketId), eq(market.marketStatus, "open")),
-        )
-        .limit(1)
-        .for("update");
+        if (!getMarketOutcomeAndMarketStatus) {
+          throw new ApiError(
+            `The market with provided id ${data.marketId} is not available to take order`,
+            400,
+          );
+        }
 
-      if (!getMarket) {
-        throw new ApiError(
-          "No market details found with the provided market id",
-          400,
+        const selectedOutcomeIndex =
+          getMarketOutcomeAndMarketStatus.titles.findIndex(
+            (title) => title === data.selectedOutcome,
+          );
+
+        if (selectedOutcomeIndex < 0) {
+          throw new ApiError(
+            "Invalid outcome selected, try with proper outcome",
+            400,
+          );
+        }
+
+        const volumes = getMarketOutcomeAndMarketStatus.volumes;
+        const lmsr = new LMSRLogic(
+          selectedOutcomeIndex,
+          data.orderQty,
+          volumes,
         );
-      }
+        const { tradeCost, newPrices, newVolumes } = lmsr.buy();
 
-      console.log("market check done");
-      
+        const newOutcomesVolumeAndPrices =
+          getMarketOutcomeAndMarketStatus.titles.map((outcome, i) => ({
+            title: outcome,
+            price: String(newPrices[i]),
+            volume: Number(newVolumes[i]),
+          }));
 
-      const selectedOutcomeIndex = getMarket.outcomes.findIndex(
-        (outcome) => outcome.title === data.selectedOutcome,
-      );
+        const walletBalanceUpdate = await tx
+          .update(userSchema.user)
+          .set({
+            walletBalance: sql`${userSchema.user.walletBalance} - ${String(tradeCost)}`,
+          })
+          .where(
+            and(
+              eq(userSchema.user.id, getUser.id),
+              gte(
+                userSchema.user.walletBalance,
+                sql`${String(tradeCost)}::numeric(36,18)`,
+              ),
+            ),
+          );
 
-      if (
-        selectedOutcomeIndex < 0 ||
-        selectedOutcomeIndex > getMarket.outcomes.length
-      ) {
-        throw new ApiError(
-          "Selected outcome is invalid, select a correct outcome",
-          400,
-        );
-      }
+        if (walletBalanceUpdate.rowCount === 0) {
+          throw new ApiError(
+            `Wallet balance is not suffiecient to proceed with the order. Balance required - ${tradeCost}`,
+            400,
+          );
+        }
 
-      const lmsr = new LMSRLogic(
-        getMarket.outcomes,
-        selectedOutcomeIndex,
-        data.orderQty,
-      );
-
-      const { calculatedOutcomes, tradeCost } = lmsr.buy();
-      console.log(calculatedOutcomes);
-      
-      console.log("going for wallet balance update");
-      
-      const walletBalanceUpdate = await tx
-        .update(userSchema.user)
-        .set({
-          walletBalance: sql`${userSchema.user.walletBalance} - ${Math.round(tradeCost)}`,
-        })
-        .where(
-          and(
-            eq(userSchema.user.id, getUser.id),
-            gte(userSchema.user.walletBalance, Math.round(tradeCost)),
-          ),
-        );
-
-      if (walletBalanceUpdate.rowCount === 0) {
-        throw new ApiError(
-          "Wallet balance is not suffiecient to proceed with the order",
-          400,
-        );
-      }
-
-      console.log("wallet balance update done");
-      
-      await tx
-        .insert(position)
-        .values({
-          positionTakenBy: getUser.id,
-          positionTakenFor: data.selectedOutcome,
-          positionTakenIn: data.marketId,
-          positionStatus: "open",
-          pnl: 0,
-          totalQtyAndAvgPrice: {
-            qty: data.orderQty,
-            atTotalCost: tradeCost,
-            avgPrice: tradeCost / data.orderQty,
-          },
-        })
-        .onConflictDoUpdate({
-          target: [
-            position.positionTakenBy,
-            position.positionTakenFor,
-            position.positionTakenIn,
-          ],
-          set: {
-            totalQtyAndAvgPrice: sql`jsonb_build_object(
-          'qty', (${position.totalQtyAndAvgPrice}->>'qty')::numeric + ${data.orderQty},
-          'atTotalCost', (${position.totalQtyAndAvgPrice}->>'atTotalCost')::numeric + ${tradeCost},
-          'avgPrice', ((${position.totalQtyAndAvgPrice}->>'atTotalCost')::numeric + ${tradeCost}) / ((${position.totalQtyAndAvgPrice}->>'qty')::numeric + ${data.orderQty})
-          )`,
-          },
+        await tx.insert(userTransactions).values({
+          transactionType: "debit",
+          reason: "trade:buy",
+          details: `Bought ${data.orderQty} qty of ${getMarketOutcomeAndMarketStatus.marketTitle} for outcome ${data.selectedOutcome}`,
+          amount: String(tradeCost),
         });
 
-      await tx.insert(order).values({
-        orderPlacedBy: getUser.id,
-        orderPlacedFor: data.selectedOutcome,
-        orderTakenIn: data.marketId,
-        orderType: data.orderType,
-        qty: data.orderQty,
-        updatedPrices: calculatedOutcomes,
-        orderStatus: "success",
-        averageTradedPrice: tradeCost / data.orderQty,
-      });
+        const avgPricePerShare = new Decimal(String(tradeCost))
+          .div(String(data.orderQty))
+          .toString();
 
-      await tx
-        .update(market)
-        .set({
-          outcomes: calculatedOutcomes,
-        })
-        .where(eq(market.id, data.marketId));
+        await tx
+          .insert(position)
+          .values({
+            positionTakenBy: getUser.id,
+            positionTakenFor: data.selectedOutcome,
+            positionTakenIn: data.marketId,
+            positionStatus: "open",
+            qty: data.orderQty,
+            atTotalCost: String(tradeCost),
+            avgPrice: avgPricePerShare,
+          })
+          .onConflictDoUpdate({
+            target: [
+              position.positionTakenBy,
+              position.positionTakenFor,
+              position.positionTakenIn,
+            ],
+            set: {
+              qty: sql`${position.qty} + ${data.orderQty}`,
+              atTotalCost: sql`${position.atTotalCost} + ${String(tradeCost)}::numeric(36,18)`,
+              avgPrice: sql`(${position.atTotalCost} + ${String(tradeCost)}::numeric(36,18)) / ((${position.qty} + ${String(data.orderQty)})::numeric(36,18))`,
+            },
+          });
 
-      return { message: "success" };
+        const [newOrder] = await tx
+          .insert(order)
+          .values({
+            orderPlacedBy: getUser.id,
+            orderPlacedFor: data.selectedOutcome,
+            orderTakenIn: data.marketId,
+            orderType: data.orderType,
+            qty: data.orderQty,
+            updatedPrices: newOutcomesVolumeAndPrices,
+            orderStatus: "success",
+            averageTradedPrice: String(avgPricePerShare),
+          })
+          .returning({ id: order.id });
+
+        await tx
+          .update(marketOutcomes)
+          .set({
+            prices: newPrices,
+            volume: newVolumes,
+          })
+          .where(eq(marketOutcomes.marketId, data.marketId));
+
+        return { orderId: newOrder.id };
+      },
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `Order successful. Order id - ${dbTransactionResult.orderId}`,
     });
   } catch (error: any) {
     const statusCode = error.statusCode || 500;
