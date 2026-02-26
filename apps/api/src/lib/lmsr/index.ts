@@ -1,48 +1,57 @@
-interface Outcome {
-  title: string;
-  price: number;
-  volume: number;
-}
+import { Decimal } from "decimal.js";
+
+Decimal.set({ precision: 36 });
 
 class LMSRLogic {
   private readonly b: number = 1000;
-
-  private outcomes: Outcome[];
   private selectedOutcomeIndex: number;
   private orderQty: number;
+  private volumes: number[];
 
   constructor(
-    outcomes: Outcome[],
     selectedOutcomeIndex: number,
     orderQty: number,
+    volumes: number[],
   ) {
-    this.outcomes = outcomes;
     this.selectedOutcomeIndex = selectedOutcomeIndex;
     this.orderQty = orderQty;
+    this.volumes = volumes;
   }
 
   /**
-   * @param quantities
-   * @returns a number that is the cost depended on the quantity
+   * @param volumes a number array
+   * @returns a decimal number
    */
-  private cost(quantities: number[]): number {
-    const maxQ = Math.max(...quantities.map((qty) => qty / this.b)); // Getting the largest qty from the array
-    // Sum of exponentials
-    const sumExp = quantities
-      .map((qty) => Math.exp(qty / this.b - maxQ))
-      .reduce((acc, val) => acc + val, 0);
-    const cost = this.b * (maxQ + Math.log(sumExp)); // Cost
-    return cost;
+  private cost(volumes: number[]): Decimal {
+    const b = new Decimal(String(this.b));
+    const scaledVolume = volumes.map((v) => new Decimal(String(v)).div(b));
+    const maxQ = Decimal.max(...scaledVolume);
+
+    const sumExp = volumes.reduce((acc, vol) => {
+      const vDivB = new Decimal(String(vol)).div(b);
+      const exponent = vDivB.minus(maxQ);
+      return acc.plus(exponent.exp());
+    }, new Decimal(0));
+
+    const totalCost = b.times(maxQ.plus(sumExp.ln()));
+    return totalCost;
   }
+
   /**
-   * @param quantities
-   * @returns returns an array of numbers that is the price array.
+   * @param volumes
+   * @returns array of decimals
    */
-  private prices(quantities: number[]): number[] {
-    const maxQ = Math.max(...quantities.map((qty) => qty / this.b));
-    const expVals = quantities.map((qty) => Math.exp(qty / this.b - maxQ)); // Exponetial array
-    const sumExp = expVals.reduce((acc, val) => acc + val, 0);
-    const prices = expVals.map((val) => val / sumExp);
+  private prices(volumes: number[]): string[] {
+    const b = new Decimal(String(this.b));
+    const scaledVolume = volumes.map((v) => new Decimal(String(v)).div(b));
+    const maxQ = Decimal.max(...scaledVolume);
+
+    const expVals = volumes.map((v) =>
+      Decimal.exp(new Decimal(String(v)).div(b).minus(maxQ)),
+    );
+    const sumExp = expVals.reduce((acc, val) => acc.plus(val), new Decimal(0));
+
+    const prices = expVals.map((val) => val.div(sumExp).toString());
     return prices;
   }
 
@@ -50,50 +59,40 @@ class LMSRLogic {
    * This is a buy function
    * @returns calculated outcomes and cost of a trade.
    */
-  buy(): { calculatedOutcomes: Outcome[]; tradeCost: number } {
-    const providedQty = this.outcomes.map((outcome) => outcome.volume);
-    const addQty = [...providedQty];
-    addQty[this.selectedOutcomeIndex] += this.orderQty;
+  buy(): {
+    newVolumes: number[];
+    tradeCost: Decimal;
+    newPrices: string[];
+  } {
+    const providedQty = [...this.volumes];
+    const addVolumes = [...this.volumes];
+    addVolumes[this.selectedOutcomeIndex] += this.orderQty;
 
-    const tradeCost = this.cost(addQty) - this.cost(providedQty);
-    const newPrices = this.prices(addQty);
-    const newVolumeForSelectedQty =
-      this.outcomes[this.selectedOutcomeIndex].volume + this.orderQty;
-    const calculatedOutcomes = this.outcomes.map((outcome, i) => ({
-      ...outcome,
-      price: newPrices[i],
-      volume:
-        i === this.selectedOutcomeIndex
-          ? newVolumeForSelectedQty
-          : this.outcomes[i].volume,
-    }));
+    const tradeCost = this.cost(addVolumes).minus(this.cost(providedQty));
+    const newPrices = this.prices(addVolumes);
 
-    return { calculatedOutcomes, tradeCost };
+    return { tradeCost, newPrices, newVolumes: addVolumes };
   }
 
   /**
    * This is a sell function
    * @returns calculated outcomes and return to the user
    */
-  sell(): { calculatedOutcomes: Outcome[]; returnToTheUser: number } {
-    const providedQty = this.outcomes.map((outcome) => outcome.volume);
-    const subtractedQty = [...providedQty];
-    subtractedQty[this.selectedOutcomeIndex] -= this.orderQty;
+  sell(): {
+    returnToTheUser: Decimal;
+    newPrices: string[];
+    newVolumes: number[];
+  } {
+    const providedVolumes = [...this.volumes];
+    const subTractVolumes = [...this.volumes];
+    subTractVolumes[this.selectedOutcomeIndex] -= this.orderQty;
 
-    const returnToTheUser = this.cost(subtractedQty) - this.cost(providedQty);
-    const newPrices = this.prices(subtractedQty);
-    const newVolumeForSelectedQty =
-      this.outcomes[this.selectedOutcomeIndex].volume - this.orderQty;
-    const calculatedOutcomes = this.outcomes.map((outcome, i) => ({
-      ...outcome,
-      price: newPrices[i],
-      volume:
-        i === this.selectedOutcomeIndex
-          ? newVolumeForSelectedQty
-          : this.outcomes[i].volume,
-    }));
+    const returnToTheUser = this.cost(providedVolumes).minus(
+      this.cost(subTractVolumes),
+    );
+    const newPrices = this.prices(providedVolumes);
 
-    return { calculatedOutcomes, returnToTheUser };
+    return { returnToTheUser, newPrices, newVolumes: providedVolumes };
   }
 }
 
