@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "./ui/switch";
 import { Label } from "./ui/label";
 import { useTheme } from "./theme-provider";
+import { Link, useLocation } from "react-router-dom";
 
 const navMenue = [
   { title: "Market", link: "/" },
@@ -21,7 +22,6 @@ const navMenue = [
 
 function DropDown() {
   const { theme, setTheme } = useTheme();
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -62,16 +62,19 @@ function DropDown() {
 }
 
 export default function HeaderNavigation() {
+  const pathname = useLocation().pathname;
   return (
     <div className="border dark:border-b-white/20 border-b-black/20 top-0 fixed w-full dark:bg-background bg-background">
       <div className="flex items-center justify-between gap-10 max-w-7xl mx-auto h-14 px-4">
         {/* Title */}
         <div>
-          <h2 className="text-3xl font-semibold">
-            <span className="flex items-center">
-              <IconChessKnight className="size-10!" />
-              Gambit
-            </span>
+          <h2 className="text-3xl font-semibold select-none">
+            <Link to={"/"}>
+              <span className="flex items-center">
+                <IconChessKnight className="size-10!" />
+                Gambit
+              </span>
+            </Link>
           </h2>
         </div>
 
@@ -80,7 +83,12 @@ export default function HeaderNavigation() {
           <div>
             <ul className="flex gap-5 mt-1">
               {navMenue.map((nav, i) => (
-                <li key={i}>{nav.title}</li>
+                <li
+                  key={i}
+                  className={`${pathname === nav.link ? "text-foreground" : "text-[#7b8996]"}  font-semibold text-sm select-none`}
+                >
+                  <Link to={nav.link}>{nav.title}</Link>
+                </li>
               ))}
             </ul>
           </div>
