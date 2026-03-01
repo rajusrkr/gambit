@@ -210,10 +210,10 @@ export default function CreateMarketForm() {
 
   // Date with sports api format
   const date = new Date();
-  const todayFormatted = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate()}`;
+  const todayFormatted = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`;
   const tomorrow = new Date().setDate(date.getDate() + 1);
   const tomorrowDate = new Date(tomorrow);
-  const tomorrowDateFormatted = `${tomorrowDate.getFullYear()}-${(tomorrowDate.getMonth() + 1).toString().padStart(2, "0")}-${tomorrowDate.getDate()}`;
+  const tomorrowDateFormatted = `${tomorrowDate.getFullYear()}-${(tomorrowDate.getMonth() + 1).toString().padStart(2, "0")}-${tomorrowDate.getDate().toString().padStart(2, "0")}`;
 
   // States
   const outcomeRef = useRef<HTMLInputElement>(null);
