@@ -12,6 +12,15 @@ import {
   newOrderPausedQueue,
   startMarketQueue,
 } from "../lib/redis";
+import { and, desc, eq, ne } from "drizzle-orm";
+
+class ApiError extends Error {
+  public statusCode: number;
+  constructor(message: string, statusCode: number) {
+    super(message);
+    this.statusCode = statusCode;
+  }
+}
 
 interface GetMarketVolumeAndPricesArr {
   prices: any[];
@@ -163,6 +172,50 @@ function getTime(timestamp: number) {
   const time = `${hours}:${minutes}:${seconds}`;
 
   return time;
+}
+
+interface MarketData {
+  title: string;
+  outcomes: {
+    titles: string[];
+    volume: number[];
+    prices: string[];
+  } | null;
+  currentStatus:
+    | "open"
+    | "settled"
+    | "new_order_paused"
+    | "open_soon"
+    | "canceled";
+  closing: number;
+}
+
+function getFormattedMarketData({ markets }: { markets: MarketData[] }) {
+  const formatMarketData = new Array(markets.length);
+
+  for (let i = 0; i < markets.length; i++) {
+    const market = markets[i];
+    const { outcomes } = market;
+
+    const formattedOutcomes = outcomes ? new Array(outcomes.titles.length) : [];
+
+    if (outcomes) {
+      for (let j = 0; j < outcomes.titles.length; j++) {
+        formattedOutcomes[j] = {
+          title: outcomes.titles[j],
+          price: outcomes.prices[j],
+          volume: outcomes.volume[j],
+        };
+      }
+    }
+
+    formatMarketData[i] = {
+      ...market,
+      outcomes: formattedOutcomes,
+    };
+  }
+
+  return formatMarketData;
 }
 
 export const fetchFootball = async (req: Request, res: Response) => {
@@ -336,5 +389,43 @@ export const createMarket = async (req: Request, res: Response) => {
       success: false,
       message: error instanceof Error ? error.message : "Internal server error",
     });
+  }
+};
+
+export const getMarkets = async (req: Request, res: Response) => {
+  try {
+    const markets = await db
+      .select({
+        title: market.title,
+        outcomes: {
+          titles: marketOutcomes.titles,
+          volume: marketOutcomes.volume,
+          prices: marketOutcomes.prices,
+        },
+        currentStatus: market.marketStatus,
+        closing: market.marketEnds,
+      })
+      .from(market)
+      .leftJoin(marketOutcomes, eq(marketOutcomes.marketId, market.id))
+      .where(and(ne(market.marketStatus, "open_soon")))
+      .orderBy(desc(market.createdAt));
+
+    if (markets.length === 0) {
+      throw new ApiError("No market available to show", 400);
+    }
+
+    const formatMarketData = getFormattedMarketData({ markets });
+
+    return res.status(200).json({
+      success: true,
+      message: "Market fetched successfully",
+      markets: formatMarketData,
+    });
+  } catch (error: any) {
+    const errorCode = error.statusCode || 500;
+    const errorMessage = error.message || "Internal server error";
+    return res
+      .status(errorCode)
+      .json({ success: false, message: errorMessage });
   }
 };

@@ -206,8 +206,6 @@ export const buyOrder = async (req: Request, res: Response) => {
   } catch (error: any) {
     const statusCode = error.statusCode || 500;
     const errorMessage = error.message || "Internal server error";
-    console.log(error);
-
     return res
       .status(statusCode)
       .json({ success: false, message: errorMessage });
