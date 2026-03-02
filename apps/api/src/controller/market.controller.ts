@@ -396,6 +396,7 @@ export const getMarkets = async (req: Request, res: Response) => {
   try {
     const markets = await db
       .select({
+        id: market.id,
         title: market.title,
         outcomes: {
           titles: marketOutcomes.titles,
@@ -427,5 +428,80 @@ export const getMarkets = async (req: Request, res: Response) => {
     return res
       .status(errorCode)
       .json({ success: false, message: errorMessage });
+  }
+};
+
+export const marketById = async (req: Request, res: Response) => {
+  const paramsData = req.query;
+
+  const marketId = paramsData.marketId;
+
+  if (!marketId) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid market id, try with proper inputs",
+    });
+  }
+
+  try {
+    const [getMarketById] = await db
+      .select({
+        marketTitle: market.title,
+        description: market.description,
+        settlementRules: market.settlementRules,
+        marketType: market.category,
+        closing: market.marketEnds,
+        price: marketOutcomes.prices,
+        outcomesTitle: marketOutcomes.titles,
+        volumes: marketOutcomes.volume,
+      })
+      .from(market)
+      .leftJoin(marketOutcomes, eq(marketOutcomes.marketId, String(marketId)))
+      .where(eq(market.id, String(marketId)));
+
+    if (!getMarketById) {
+      return res.status(400).json({
+        success: false,
+        message: "No market data found with provided market id",
+      });
+    }
+
+    const {
+      marketTitle,
+      description,
+      settlementRules,
+      marketType,
+      closing,
+      outcomesTitle,
+      price,
+      volumes,
+    } = getMarketById;
+
+    const fromattedMarketData = {
+      marketTitle,
+      description,
+      settlementRules,
+      marketType,
+      closing,
+      outcomes:
+        outcomesTitle &&
+        outcomesTitle.map((outcomeTitle, i) => ({
+          outcomeTitle,
+          price: price && price[i],
+          volume: volumes && volumes[i],
+        })),
+    };
+
+    return res.status(200).json({
+      success: true,
+      message: "Market fetched",
+      marketData: fromattedMarketData,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message:
+        error instanceof Error ? `${error.message}` : "Internal server error",
+    });
   }
 };
