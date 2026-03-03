@@ -8,8 +8,10 @@ import {
   CardTitle,
 } from "./ui/card";
 import { Button } from "./ui/button";
+import { Link } from "react-router-dom";
 
 interface Market {
+  id: string;
   title: string;
   outcomes: {
     title: string;
@@ -41,49 +43,56 @@ export default function MarketCards() {
     queryFn: fetchMarket,
   });
 
-  console.log(getMarketQuery.data);
-
   return (
-    <div className="grid md:grid-cols-4 grid-cols-1 max-w-7xl mx-auto pt-4 md:px-0 px-4 gap-4">
+    <div className="grid md:grid-cols-3 grid-cols-1 gap-4">
       {getMarketQuery.data &&
         getMarketQuery.data.markets.map((market, i) => (
           <Card
             key={i}
             className="dark:bg-[#1e2428] relative dark:hover:bg-[#242b32] transition-all"
           >
-            <CardHeader>
-              <CardTitle>{market.title}</CardTitle>
+            <CardHeader className="h-10">
+              <CardTitle className=" font-bold">
+                <Link to={`/market/${market.id}`}>
+                  <span className="hover:underline underline-offset-1">
+                    {market.title}
+                  </span>
+                </Link>
+              </CardTitle>
             </CardHeader>
 
-            <CardContent>
+            <CardContent className="mb-2">
               {market.outcomes.length === 2 && (
                 <div className="w-full flex gap-1">
-                  {market.outcomes.map((outcome) => (
-                    <Button className="flex-1 capitalize">
+                  {market.outcomes.map((outcome, i) => (
+                    <Button className="flex-1 capitalize" key={i}>
                       {outcome.title}
                     </Button>
                   ))}
                 </div>
               )}
 
-              {market.outcomes.length > 2 && (
+              {market.outcomes.length > 2 && market.outcomes.length < 6 && (
                 <div className="w-full grid grid-cols-3 gap-1 pb-4">
-                  {market.outcomes.slice(0, 6).map((outcome) => (
-                    <Button>{outcome.title}</Button>
+                  {market.outcomes.map((outcome, i) => (
+                    <Button key={i}>{outcome.title}</Button>
                   ))}
+                </div>
+              )}
 
-                  {market.outcomes.length > 6 && (
-                    <Button
-                      className="text-foreground hover:cursor-pointer"
-                      variant={"link"}
-                    >
-                      See more
-                    </Button>
-                  )}
+              {market.outcomes.length > 5 && (
+                <div className="w-full grid grid-cols-3 gap-1 pb-4">
+                  {[
+                    ...market.outcomes.slice(0, 5),
+                    { price: "0", volume: 0, title: "See more" },
+                  ].map((outcome, i) => (
+                    <Button key={i}>{outcome.title}</Button>
+                  ))}
                 </div>
               )}
             </CardContent>
-            <CardFooter className="absolute bottom-0 pb-2">
+
+            <CardFooter className="absolute bottom-0 pb-1">
               <div className="flex items-center gap-1">
                 <span className="relative flex size-3">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75"></span>
