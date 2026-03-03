@@ -64,7 +64,7 @@ function DropDown() {
 export default function HeaderNavigation() {
   const pathname = useLocation().pathname;
   return (
-    <div className="border dark:border-b-white/20 border-b-black/20 top-0 fixed w-full dark:bg-background bg-background">
+    <div className="border dark:border-b-white/20 border-b-black/20 top-0 fixed w-full dark:bg-background bg-background z-50">
       <div className="flex items-center justify-between gap-10 max-w-7xl mx-auto h-14 px-4">
         {/* Title */}
         <div>
