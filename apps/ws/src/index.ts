@@ -1,5 +1,5 @@
 import express from "express";
-import { setUpWS } from "./lib/socket";
+import { setUpWS } from "./lib/socket/server";
 import http from "http";
 const app = express();
 const server = http.createServer(app);

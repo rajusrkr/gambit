@@ -1,48 +1,37 @@
+import Redis from "ioredis";
 import { WebSocket } from "ws";
 
-class SubscriptionManager {
-  private channels = new Map<string, Set<WebSocket>>();
-  private clients = new Map<WebSocket, Set<string>>();
+class Sub {
+  private readonly host = "127.0.0.1";
+  private readonly port = 6379;
+  private redis: Redis;
 
-  subscribe(ws: WebSocket, channelsToSubcribe: string[]) {
-    if (!this.clients.has(ws)) this.clients.set(ws, new Set());
-
-    channelsToSubcribe.forEach((ch) => {
-      if (!this.channels.has(ch)) this.channels.set(ch, new Set());
-      this.channels.get(ch)!.add(ws);
-      this.clients.get(ws)!.add(ch);
+  constructor() {
+    this.redis = new Redis({
+      host: this.host,
+      port: this.port,
     });
   }
 
-  unsubscribeAll(ws: WebSocket) {
-    const subs = this.clients.get(ws);
-    if (!subs) return;
-
-    subs.forEach((ch) => {
-      const subscribers = this.channels.get(ch);
-
-      if (subscribers) {
-        subscribers.delete(ws);
-
-        if (subscribers.size === 0) {
-          this.channels.delete(ch);
-        }
-      }
+  listenForMessage() {
+    this.redis.on("message", (channel, message) => {
+      /**
+       * Get the message
+       * 
+       * 
+       * Message will be type of price_update, portfolio_update, etc....
+       * type will be there other wise i cant identify the type of the update -THIS MIGHT NOT REQUIRED
+       * 
+       * THIS IS ONLY FOR PRICE UPDATE
+       * marketID is the channel id,
+       * get the market id.
+       * get clients by market id
+       * send those clients the data.
+       * 
+       * THIS IS ONLY FOR PORTFOLIO UPDATE - updates like qty
+       * for this i need the user id, there are no other way.
+       * EVERY PORTFOLIO HAVE THERE OWN UNIQUEUE ID SO I CAN USE THAT AS CHANNEL ID
+       */
     });
-    this.clients.delete(ws);
-  }
-
-  broadCast(channel: string, data: Buffer | Uint8Array) {
-    const subscribers = this.channels.get(channel);
-
-    if (!subscribers) return;
-
-    for (const client of subscribers) {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(data, { binary: true });
-      }
-    }
   }
 }
-
-export { SubscriptionManager };

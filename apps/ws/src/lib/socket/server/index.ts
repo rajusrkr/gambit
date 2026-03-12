@@ -1,34 +1,3 @@
-/**
- * Redis pub sub
- *
- *
- *
- * subscribing happens at the time of connection.
- *
- * a check will be made - if the channel exists admit the user, if not exists first create the channel then admit the user
- *
- *
- *
- * The payload for first connection:
- * {
- * connectionType: "new"
- * type: "sub",
- * subTo: "prices",
- * ticks:string[]
- * },
- *
- * The payload for second or third.. connection:
- * This is like swaping the old channels with new channels
- *
- * {
- * connectionType: "old",
- * type: "changeSub",
- * subTo: "prices",
- * newTicks: string[]
- *
- * }
- */
-
 import { WebSocket, WebSocketServer } from "ws";
 import { IncomingMessage } from "http";
 import jwt from "jsonwebtoken";
@@ -39,7 +8,6 @@ interface ExtendWebSocket extends WebSocket {
 }
 
 const wss = new WebSocketServer({ noServer: true });
-const rooms = new Map<ExtendWebSocket, string>();
 
 function authenticate(req: IncomingMessage): string | null {
   const cookies = req.headers.cookie;
@@ -66,14 +34,13 @@ export function setUpWS(server: any) {
     (request: IncomingMessage, socket: Duplex, head: Buffer) => {
       const userId = authenticate(request);
 
-      if (!userId) {
-        socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
-        socket.destroy();
-        return;
-      }
+      // if (!userId) {
+      //   socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
+      //   socket.destroy();
+      //   return;
+      // }
 
       wss.handleUpgrade(request, socket, head, (ws) => {
-        rooms.set(ws as ExtendWebSocket, userId);
         wss.emit("connection", ws, request);
       });
     },
@@ -83,13 +50,17 @@ export function setUpWS(server: any) {
 wss.on("connection", (ws: ExtendWebSocket) => {
   console.log("New connection established");
   ws.on("message", (msg) => {
-    const data = JSON.parse(msg.toString());
-    console.log(data);
+    // channel id = "123_random"
+    // redis.sub("channel_id")
 
-    ws.send(JSON.stringify({ message: "Hey there" }));
+    try {
+      const data = JSON.parse(msg.toString());
+      console.log(data);
+      ws.send(JSON.stringify({ message: "Your message was", data }));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unable to parse your message"
+      console.log(errorMessage);
+      ws.send(JSON.stringify({message: errorMessage}))
+    }
   });
 });
-
-setInterval(() => {
-  console.log(rooms);
-}, 20 * 1000);
