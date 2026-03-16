@@ -79,6 +79,11 @@ wss.on("connection", (ws: ExtendedSocket) => {
         ticksToSub: string[];
         pageToSub: string;
       };
+
+      ws.send(JSON.stringify({message: "Hey we have received your message"}))
+
+      console.log(messageData);
+
       const { message, pageToSub, ticksToSub } = messageData;
 
       hanldeConnections.handleConnections(ticksToSub, pageToSub, ws);
