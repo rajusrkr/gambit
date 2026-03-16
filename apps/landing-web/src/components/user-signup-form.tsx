@@ -77,6 +77,7 @@ export function UserSignupForm({
         name: value.fullName,
         email: value.email,
         password: value.password,
+        callbackURL: "http://localhost:5175",
 
         fetchOptions: {
           onSuccess: () => {

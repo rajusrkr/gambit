@@ -52,7 +52,7 @@ export default function MarketCards() {
             className="dark:bg-[#1e2428] relative dark:hover:bg-[#242b32] transition-all"
           >
             <CardHeader className="h-10">
-              <CardTitle className=" font-bold">
+              <CardTitle className="text-xl font-bold">
                 <Link to={`/market/${market.id}`}>
                   <span className="hover:underline underline-offset-1">
                     {market.title}

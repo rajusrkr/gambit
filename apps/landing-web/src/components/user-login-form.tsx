@@ -65,6 +65,8 @@ export function UserLoginForm({
       await userAuthClient.signIn.email({
         email: value.email,
         password: value.password,
+        rememberMe: true,
+        callbackURL: "http://localhost:5175",
 
         fetchOptions: {
           onSuccess: () => {

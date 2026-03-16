@@ -51,6 +51,13 @@ function MarketMetaData({
     </div>
   );
 }
+function ChartTabContent(){
+  return(
+    <div>
+      chart tab content
+    </div>
+  )
+}
 function OverviewTabContent({
   outcomes,
 }: {
@@ -104,6 +111,7 @@ function HistoryTabContent() {
   return <Card className="px-4">HistoryTabContent</Card>;
 }
 const tabs = [
+  { value: "chart", title: "Chart" },
   { value: "overview", title: "Overview" },
   { value: "discussions", title: "Discussions" },
   { value: "history", title: "History" },
@@ -119,7 +127,7 @@ function DataCard({
 }) {
   return (
     <Card className="px-4 max-w-4xl">
-      <Tabs defaultValue="overview">
+      <Tabs defaultValue="chart">
         <TabsList variant={"line"}>
           {tabs.map((tab, i) => (
             <TabsTrigger value={tab.value} key={i}>
@@ -129,6 +137,9 @@ function DataCard({
         </TabsList>
 
         {/* Tab contents */}
+        <TabsContent value="chart">
+          <ChartTabContent />
+        </TabsContent>
         <TabsContent value="overview">
           <OverviewTabContent outcomes={outcomes} />
         </TabsContent>

@@ -2,9 +2,10 @@ import "dotenv/config";
 import { db } from "@repo/db";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { twoFactor, username } from "better-auth/plugins";
+import { createAuthMiddleware, twoFactor, username } from "better-auth/plugins";
 import { userSchema } from "@repo/db";
 import { sendAdminVerificationEmail } from "../node-mailer";
+import jwt from "jsonwebtoken";
 
 const userAuth = betterAuth({
   database: drizzleAdapter(db, {
@@ -65,6 +66,21 @@ const userAuth = betterAuth({
     },
   },
   plugins: [twoFactor(), username()],
+
+  hooks: {
+    after: createAuthMiddleware(async (ctx) => {
+      if (ctx.context.newSession) {
+        const userId = ctx.context.newSession.user.id;
+        const token = jwt.sign(`${userId}`, `${process.env.SOCKET_AUTH_JWT}`);
+        ctx.setCookie("socketIdentity", token, {
+          httpOnly: true,
+          sameSite: "Lax",
+          path: "/",
+          maxAge: 30 * 24 * 60 * 60,
+        });
+      }
+    }),
+  },
 });
 
 export default userAuth;
