@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@repo/types": "*",
     "@base-ui/react": "^1.2.0",
     "@fontsource-variable/public-sans": "^5.2.7",
     "@tabler/icons-react": "^3.37.1",
