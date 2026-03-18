@@ -22,12 +22,13 @@ function authenticateUser(req: IncomingMessage): string | null {
     const cookieObj = Object.fromEntries(
       cookies.split(";").map((c) => c.trim().split("=")),
     );
+    const secret = process.env.SOCKET_AUTH_JWT;
+
     const decode = jwt.verify(
       cookieObj.socketIdentity,
-      `${process.env.SOCKET_JWT_SECRET}`,
-    ) as { userId: string };
-
-    return decode.userId;
+      `${process.env.SOCKET_AUTH_JWT}`,
+    ) 
+    return decode.toString()
   } catch (error) {
     return null;
   }
@@ -38,11 +39,11 @@ function setupWS(server: any) {
     const userId = authenticateUser(req);
 
     // Auth check
-    // if (!userId) {
-    //   socket.write("401 unauthorized")
-    //   socket.destroy()
-    //   return;
-    // }
+    if (!userId) {
+      socket.write("401 unauthorized")
+      socket.destroy()
+      return;
+    }
 
     wss.handleUpgrade(req, socket, head, (ws) => {
       wss.emit("connection", ws, req);
