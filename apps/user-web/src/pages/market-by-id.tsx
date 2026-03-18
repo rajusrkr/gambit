@@ -51,12 +51,8 @@ function MarketMetaData({
     </div>
   );
 }
-function ChartTabContent(){
-  return(
-    <div>
-      chart tab content
-    </div>
-  )
+function ChartTabContent() {
+  return <div>chart tab content</div>;
 }
 function OverviewTabContent({
   outcomes,

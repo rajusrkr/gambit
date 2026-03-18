@@ -10,11 +10,9 @@ const WebSocketContext = createContext<WebSocketContextType | null>(null);
 export const WebSocketProvider = ({
   children,
   url,
-  currentPath,
 }: {
   children: any;
   url: string;
-  currentPath: string;
 }) => {
   const [lastMessage, setLastMessage] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState<
@@ -52,17 +50,13 @@ export const WebSocketProvider = ({
     }, delay);
   };
 
+
   useEffect(() => {
     connect();
     return () => {
       socketRef.current?.close();
     };
   }, [url]);
-
-  useEffect(() => {
-    console.log("path changed");
-    console.log("current pathname", currentPath);
-  }, [currentPath]);
 
   //   Value for websocket context provider
   const value: WebSocketContextType = {

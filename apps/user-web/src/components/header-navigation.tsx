@@ -40,7 +40,7 @@ function DropDown() {
         <DropdownMenuGroup>
           <DropdownMenuLabel>Theme</DropdownMenuLabel>
 
-          <DropdownMenuItem onClick={(e) => e.preventDefault()}>
+          <DropdownMenuItem onClick={(e: React.MouseEvent<HTMLButtonElement>) => e.preventDefault()}>
             <div
               className="flex items-center space-x-2"
               onClick={() => {
