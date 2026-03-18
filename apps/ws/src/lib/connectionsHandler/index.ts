@@ -17,7 +17,10 @@ class ConnectionHandler {
     ws: ExtendedSocket,
   ) {
     // If the current page ref != page provided by the user
-    if (this.pageRef.has(ws) && this.pageRef.get(ws) !== pageToSub) {
+    if (
+      (this.pageRef.has(ws) && this.pageRef.get(ws) !== pageToSub) ||
+      this.pageRef.get(ws) === "market:id"
+    ) {
       // Check if the user exists in the user Map and getting the user room
       if (!this.users.has(ws)) return;
       const roomsFromUser = this.users.get(ws);

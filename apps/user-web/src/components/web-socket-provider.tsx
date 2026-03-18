@@ -1,8 +1,9 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { type Message } from "@repo/types";
 
 interface WebSocketContextType {
   lastMessage: string | null;
-  sendMessage: (msg: any) => void;
+  sendMessage: (msg: Message) => void;
   status: string;
 }
 const WebSocketContext = createContext<WebSocketContextType | null>(null);
@@ -15,9 +16,9 @@ export const WebSocketProvider = ({
   url: string;
 }) => {
   const [lastMessage, setLastMessage] = useState(null);
-  const [connectionStatus, setConnectionStatus] = useState<
-    "closed" | "open" | "opening"
-  >("closed");
+  const [connectionStatus, setConnectionStatus] = useState<"closed" | "open">(
+    "closed",
+  );
   const socketRef = useRef<null | WebSocket>(null);
   const reconnectCount = useRef(0);
 
@@ -50,11 +51,10 @@ export const WebSocketProvider = ({
     }, delay);
   };
 
-
   useEffect(() => {
     connect();
     return () => {
-      socketRef.current?.close();
+      socketRef.current && socketRef.current.close();
     };
   }, [url]);
 
@@ -63,11 +63,12 @@ export const WebSocketProvider = ({
     lastMessage,
     status: connectionStatus,
     sendMessage: (msg) => {
-      socketRef.current?.send(JSON.stringify(msg));
+      if (!socketRef.current) {
+        throw new Error("No socket connection available to send message");
+      }
+      socketRef.current.send(JSON.stringify(msg));
     },
   };
-
-  console.log(connectionStatus);
 
   return (
     <WebSocketContext.Provider value={value}>

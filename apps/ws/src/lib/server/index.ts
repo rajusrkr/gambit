@@ -1,9 +1,10 @@
-import { WebSocket, WebSocketServer } from "ws";
+import { WebSocketServer } from "ws";
 import { IncomingMessage } from "http";
 import jwt from "jsonwebtoken";
 import { Duplex } from "stream";
 import { ConnectionHandler } from "../connectionsHandler/index";
 import { ExtendedSocket, PageRef, Rooms, Users } from "../types";
+import { type Message } from "@repo/types";
 
 const wss = new WebSocketServer({ noServer: true });
 const users: Users = new Map<ExtendedSocket, Set<string>>();
@@ -74,19 +75,19 @@ wss.on("connection", (ws: ExtendedSocket) => {
   console.log("NEW CONNECTION");
   ws.on("message", (msg) => {
     try {
-      const messageData = JSON.parse(msg.toString()) as {
-        message: string;
-        ticksToSub: string[];
-        pageToSub: string;
-      };
+      const messageData = JSON.parse(msg.toString()) as Message;
 
-      ws.send(JSON.stringify({message: "Hey we have received your message"}))
+      ws.send(JSON.stringify({ message: "Hey we have received your message" }));
 
       console.log(messageData);
 
-      const { message, pageToSub, ticksToSub } = messageData;
+      const { message, payload, type } = messageData;
 
-      hanldeConnections.handleConnections(ticksToSub, pageToSub, ws);
+      hanldeConnections.handleConnections(
+        payload.roomsToSub,
+        payload.pageRef,
+        ws,
+      );
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Error in parsing message";

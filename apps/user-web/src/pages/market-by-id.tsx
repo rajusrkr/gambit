@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useWebsocket } from "@/components/web-socket-provider";
 import { BACKEND_URL } from "@/lib/utils";
 import { IconLoader2 } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
@@ -232,6 +233,7 @@ function OrderCard({
 
 export default function MarketById() {
   const marketId = useParams().id;
+  const { sendMessage } = useWebsocket();
   const fetchMarketById = async (): Promise<FetchMarketByIdRes> => {
     const res = await fetch(
       `${BACKEND_URL}/market/get-market-by-id?marketId=${marketId}`,
@@ -240,7 +242,17 @@ export default function MarketById() {
     if (!response.success) {
       throw new Error(response.message);
     }
-    return response;
+
+    const data = response as FetchMarketByIdRes;
+    if (data.success) {
+      sendMessage({
+        type: "TICKER_UPDATE",
+        message: "Want to sub for ticker update",
+        payload: { pageRef: "market:id", roomsToSub: [marketId!] },
+      });
+    }
+
+    return data;
   };
   const getMarketById = useQuery({
     queryKey: ["market-by-id"],

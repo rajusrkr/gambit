@@ -1,5 +1,5 @@
 import Chart from "@/components/chart";
-import { useWebsocket } from "@/components/web-socket-provider";
+// import { useWebsocket } from "@/components/web-socket-provider";
 import { Button } from "@base-ui/react";
 import { useEffect } from "react";
 
@@ -43,24 +43,24 @@ export default function ExamplePage() {
     { time: "2018-12-31", value: 12.67 },
   ];
 
-  const { lastMessage, sendMessage } = useWebsocket();
+  // const { lastMessage, sendMessage } = useWebsocket();
 
-  console.log(lastMessage);
+  // console.log(lastMessage);
 
-  const message = {
-    message: "hey there",
-    ticksToSub: ["s1", "s2"],
-    pageToSub: "home",
-  };
+  // const message = {
+  //   message: "hey there",
+  //   ticksToSub: ["s1", "s2"],
+  //   pageToSub: "home",
+  // };
   useEffect(() => {
-    sendMessage(message);
+    // sendMessage(message);
   }, []);
 
   return (
     <div className="p-4">
       <Button
         onClick={() => {
-          sendMessage(message);
+          // sendMessage(message);
         }}
       >
         hey there

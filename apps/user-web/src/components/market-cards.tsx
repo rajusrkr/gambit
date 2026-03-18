@@ -9,6 +9,7 @@ import {
 } from "./ui/card";
 import { Button } from "./ui/button";
 import { Link } from "react-router-dom";
+import { useWebsocket } from "./web-socket-provider";
 
 interface Market {
   id: string;
@@ -29,13 +30,29 @@ interface MarketFetchRes {
 }
 
 export default function MarketCards() {
+  const { sendMessage } = useWebsocket();
+
   const fetchMarket = async (): Promise<MarketFetchRes> => {
     const res = await fetch(`${BACKEND_URL}/market/get-market`);
     const response = await res.json();
     if (!response.success) {
       throw new Error(response.message.toString());
     }
-    return response;
+
+    const data = response as MarketFetchRes;
+    if (data.success) {
+      const marketIds: string[] = [];
+      data.markets.forEach((market) => {
+        marketIds.push(market.id);
+      });
+
+      sendMessage({
+        type: "TICKER_UPDATE",
+        message: "Sub to ticks",
+        payload: { pageRef: "home", roomsToSub: marketIds },
+      });
+    }
+    return data;
   };
 
   const getMarketQuery = useQuery({
