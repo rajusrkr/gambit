@@ -8,8 +8,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWebsocket } from "@/components/web-socket-provider";
 import { BACKEND_URL } from "@/lib/utils";
 import { IconLoader2 } from "@tabler/icons-react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { useParams } from "react-router-dom";
+import z from "zod";
+import { toast } from "sonner";
 
 interface MarketData {
   marketTitle: string;
@@ -27,6 +30,13 @@ interface FetchMarketByIdRes {
   success: boolean;
   message: string;
   marketData: MarketData;
+}
+
+interface OrderData {
+  marketId: string;
+  orderType: "buy" | "sell";
+  orderQty: number;
+  selectedOutcome: string;
 }
 // ==================================
 // Sub components
@@ -175,13 +185,81 @@ function OrderCard({
     volume: number;
   }[];
 }) {
+  const [selectedButton, setSelectedButton] = useState<null | number>(null);
+  const [selectOutcome, setSelectedOutcome] = useState<null | string>(null);
+  const [quantity, setQuantity] = useState<number>(0);
+  const [currentTab, setCurrentTab] = useState<"buy" | "sell">("buy");
+
+  const orderDataValidation = z.object({
+    marketId: z.string(),
+    orderType: z.enum(["buy", "sell"]),
+    orderQty: z.number().min(1, "Minimum order qty is 1"),
+    selectedOutcome: z.string(),
+  });
+
+  const marketId = useParams().id;
+
+  const placeOrder = async ({
+    orderData,
+  }: {
+    orderData: OrderData;
+  }): Promise<void> => {
+    const validateData = orderDataValidation.safeParse(orderData);
+
+    if (!validateData.success) {
+      const errorMessage = validateData.error.issues[0].message;
+      toast.error(errorMessage, { richColors: true, position: "top-right" });
+      throw new Error(errorMessage);
+    }
+
+    const res = await fetch(`${BACKEND_URL}/user/order/${currentTab}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(validateData.data),
+    });
+
+    const response = await res.json();
+
+    if (!response.success) {
+      toast.error(response.message, {
+        richColors: true,
+        position: "top-right",
+      });
+      throw new Error(response.message);
+    }
+    toast.success(response.message, {
+      richColors: true,
+      position: "top-right",
+    });
+  };
+
+  const { mutate } = useMutation({
+    mutationFn: () =>
+      placeOrder({
+        orderData: {
+          marketId: marketId!,
+          orderQty: quantity,
+          orderType: currentTab,
+          selectedOutcome: selectOutcome!,
+        },
+      }),
+  });
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-xl font-semibold">Place order</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
-        <Tabs defaultValue="buy">
+        <Tabs
+          defaultValue="buy"
+          onValueChange={(e) => {
+            setCurrentTab(e as "buy" | "sell");
+          }}
+        >
           <TabsList variant={"line"}>
             <TabsTrigger value="buy">Buy</TabsTrigger>
             <TabsTrigger value="sell">Sell</TabsTrigger>
@@ -190,7 +268,15 @@ function OrderCard({
           <TabsContent value="buy">
             <div className="flex flex-col space-y-1">
               {outcomes.map((outcome, i) => (
-                <Button key={i} variant={"outline"}>
+                <Button
+                  className={`${i === selectedButton && "bg-accent-foreground text-accent hover:bg-accent-foreground"}`}
+                  key={i}
+                  variant={i === selectedButton ? "secondary" : "outline"}
+                  onClick={() => {
+                    setSelectedButton(i);
+                    setSelectedOutcome(outcome.outcomeTitle);
+                  }}
+                >
                   {outcome.outcomeTitle}
                 </Button>
               ))}
@@ -199,16 +285,40 @@ function OrderCard({
               <Label htmlFor="order-quantity" className="mb-1">
                 Quantity
               </Label>
-              <Input type="number" required placeholder="Enter qty. eg: 100" />
+              <Input
+                type="number"
+                required
+                placeholder="Enter qty. eg: 100"
+                defaultValue={quantity}
+                onChange={(e) => {
+                  setQuantity(Number(e.target.value));
+                }}
+              />
             </div>
             <div>
-              <Button className="w-full">Buy</Button>
+              <Button
+                className="w-full"
+                disabled={quantity === 0 || !selectOutcome}
+                onClick={() => {
+                  mutate();
+                }}
+              >
+                Buy
+              </Button>
             </div>
           </TabsContent>
           <TabsContent value="sell">
             <div className="flex flex-col space-y-1">
               {outcomes.map((outcome, i) => (
-                <Button key={i} variant={"outline"}>
+                <Button
+                  key={i}
+                  onClick={() => {
+                    setSelectedButton(i);
+                    setSelectedOutcome(outcome.outcomeTitle);
+                  }}
+                  variant={i === selectedButton ? "secondary" : "outline"}
+                  className={`${i === selectedButton && "bg-accent-foreground text-accent hover:bg-accent-foreground"}`}
+                >
                   {outcome.outcomeTitle}
                 </Button>
               ))}
@@ -217,10 +327,25 @@ function OrderCard({
               <Label htmlFor="order-quantity" className="mb-1">
                 Quantity
               </Label>
-              <Input type="number" required placeholder="Enter qty. eg: 100" />
+              <Input
+                type="number"
+                required
+                placeholder="Enter qty. eg: 100"
+                defaultValue={quantity}
+                onChange={(e) => {
+                  setQuantity(Number(e.target.value));
+                }}
+              />
             </div>
             <div>
-              <Button className="w-full" variant={"destructive"}>
+              <Button
+                className="w-full"
+                variant={"destructive"}
+                disabled={quantity === 0 || !selectOutcome}
+                onClick={() => {
+                  mutate();
+                }}
+              >
                 Sell
               </Button>
             </div>
