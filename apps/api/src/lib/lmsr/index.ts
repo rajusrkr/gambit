@@ -71,7 +71,10 @@ class LMSRLogic {
     const tradeCost = this.cost(addVolumes).minus(this.cost(providedQty));
     const newPrices = this.prices(addVolumes);
 
-    return { tradeCost, newPrices, newVolumes: addVolumes };
+    const multiplier = new Decimal(100);
+    const finalTradeCost = tradeCost.times(multiplier);
+
+    return { tradeCost: finalTradeCost, newPrices, newVolumes: addVolumes };
   }
 
   /**
