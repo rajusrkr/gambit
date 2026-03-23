@@ -10,6 +10,7 @@ import {
 import { Button } from "./ui/button";
 import { Link } from "react-router-dom";
 import { useWebsocket } from "./web-socket-provider";
+import { useAppStore } from "@/lib/zustand-store";
 
 interface Market {
   id: string;
@@ -19,8 +20,8 @@ interface Market {
     price: string;
     volume: number;
   }[];
-  currentStatus: string;
-  closing: number;
+  marketStatus: string;
+  marketCategory: string;
 }
 
 interface MarketFetchRes {
@@ -31,6 +32,8 @@ interface MarketFetchRes {
 
 export default function MarketCards() {
   const { sendMessage } = useWebsocket();
+
+  const { setMarkets, markets } = useAppStore();
 
   const fetchMarket = async (): Promise<MarketFetchRes> => {
     const res = await fetch(`${BACKEND_URL}/market/get-market`);
@@ -51,19 +54,29 @@ export default function MarketCards() {
         message: "Sub to ticks",
         payload: { pageRef: "home", roomsToSub: marketIds },
       });
+
+      setMarkets({ markets: data.markets });
     }
     return data;
   };
 
-  const getMarketQuery = useQuery({
+  const { isLoading } = useQuery({
     queryKey: ["markets"],
     queryFn: fetchMarket,
   });
 
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen text-gray-600">
+        Loading...
+      </div>
+    );
+  }
+
   return (
     <div className="grid md:grid-cols-3 grid-cols-1 gap-4">
-      {getMarketQuery.data &&
-        getMarketQuery.data.markets.map((market, i) => (
+      {markets &&
+        markets.map((market, i) => (
           <Card
             key={i}
             className="dark:bg-[#1e2428] relative dark:hover:bg-[#242b32] transition-all"
@@ -116,7 +129,7 @@ export default function MarketCards() {
                   <span className="relative inline-flex size-3 rounded-full bg-green-500"></span>
                 </span>
                 <span className="capitalize">
-                  {market.currentStatus.replaceAll("_", " ")}
+                  {market.marketStatus.replaceAll("_", " ")}
                 </span>
               </div>
             </CardFooter>

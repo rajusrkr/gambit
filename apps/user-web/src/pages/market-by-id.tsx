@@ -13,23 +13,27 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import z from "zod";
 import { toast } from "sonner";
+import { useAppStore } from "@/lib/zustand-store";
 
-interface MarketData {
-  marketTitle: string;
+interface MarketById {
+  id: string;
+  title: string;
   description: string;
   settlementRules: string;
   marketType: string;
   closing: number;
+  marketStatus: string;
   outcomes: {
     outcomeTitle: string;
     price: string;
     volume: number;
   }[];
 }
+
 interface FetchMarketByIdRes {
   success: boolean;
   message: string;
-  marketData: MarketData;
+  marketData: MarketById;
 }
 
 interface OrderData {
@@ -359,6 +363,7 @@ function OrderCard({
 export default function MarketById() {
   const marketId = useParams().id;
   const { sendMessage } = useWebsocket();
+  const { setMarketById, marketById } = useAppStore();
   const fetchMarketById = async (): Promise<FetchMarketByIdRes> => {
     const res = await fetch(
       `${BACKEND_URL}/market/get-market-by-id?marketId=${marketId}`,
@@ -375,15 +380,17 @@ export default function MarketById() {
         message: "Want to sub for ticker update",
         payload: { pageRef: "market:id", roomsToSub: [marketId!] },
       });
+
+      setMarketById({ marketById: data.marketData });
     }
 
     return data;
   };
-  const getMarketById = useQuery({
+  const { isLoading } = useQuery({
     queryKey: ["market-by-id"],
     queryFn: fetchMarketById,
   });
-  if (getMarketById.isPending) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-[80vh]">
         <IconLoader2 size={25} className="animate-spin" />
@@ -391,27 +398,18 @@ export default function MarketById() {
     );
   }
 
-  const getData = (): MarketData => {
-    return getMarketById.data!.marketData;
-  };
-  const {
-    marketTitle,
-    description,
-    settlementRules,
-    closing,
-    marketType,
-    outcomes,
-  } = getData();
+  const { title, description, settlementRules, closing, marketType, outcomes } =
+    marketById;
 
   return (
     <div>
-      {getMarketById.data && (
+      {marketById && (
         <>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left side */}
             <div className="space-y-2 lg:col-span-2">
               <MarketMetaData
-                title={marketTitle}
+                title={title}
                 closing={closing}
                 type={marketType}
               />
