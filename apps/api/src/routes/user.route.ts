@@ -1,11 +1,14 @@
-import { NextFunction, Request, Response, Router } from "express";
-import { buyOrder } from "../controller/order.controller";
-import { userAuth } from "../lib/better-auth";
 import { fromNodeHeaders } from "better-auth/node";
+import {type NextFunction,type Request,type Response, Router } from "express";
+import { buyOrder, sellOrder } from "../controller/order.controller";
+import { fetchPositions } from "../controller/user.controller";
+import { userAuth } from "../lib/better-auth";
 
 const router = Router();
 
 router.post("/user/order/buy", authMiddleWareUser, buyOrder);
+router.post("/user/order/sell", authMiddleWareUser, sellOrder);
+router.get("/user/position/get", authMiddleWareUser, fetchPositions);
 
 async function authMiddleWareUser(
   req: Request,
@@ -16,7 +19,7 @@ async function authMiddleWareUser(
     headers: fromNodeHeaders(req.headers),
   });
   if (session) {
-    // @ts-ignore, attach the user
+    // @ts-expect-error, attach the user
     req.user = session.user;
     next();
   } else {
