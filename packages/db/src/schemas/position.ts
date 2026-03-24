@@ -13,7 +13,6 @@ import { user } from "./user";
 
 export const positionStatus = pgEnum("position_status", [
   "open",
-  "partially_open",
   "settled",
 ]);
 

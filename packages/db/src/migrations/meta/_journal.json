@@ -155,6 +155,13 @@
       "when": 1772116262781,
       "tag": "0021_magenta_proudstar",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1774331694056,
+      "tag": "0022_modern_blockbuster",
+      "breakpoints": true
     }
   ]
 }
