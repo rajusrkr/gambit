@@ -1,86 +1,85 @@
 import "dotenv/config";
-import { db } from "@repo/db";
+import { db, userSchema } from "@repo/db";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { createAuthMiddleware, twoFactor, username } from "better-auth/plugins";
-import { userSchema } from "@repo/db";
-import { sendAdminVerificationEmail } from "../node-mailer";
 import jwt from "jsonwebtoken";
+import { sendAdminVerificationEmail } from "../node-mailer";
 
 const userAuth = betterAuth({
-  database: drizzleAdapter(db, {
-    provider: "pg",
-    schema: userSchema,
-  }),
-  basePath: "/api/user/auth",
-  trustedOrigins: [
-    "http://localhost:5173",
-    "http://localhost:5174",
-    "http://localhost:5175",
-  ],
-  emailAndPassword: {
-    enabled: true,
-    requireEmailVerification: true,
-    minPasswordLength: 8,
-    maxPasswordLength: 50,
-  },
-  socialProviders: {
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-    },
-  },
-  emailVerification: {
-    sendOnSignUp: true,
-    expiresIn: 10 * 60,
-    autoSignInAfterVerification: true,
-    sendVerificationEmail: async ({ user, url }) => {
-      sendAdminVerificationEmail({
-        subject: "Verify your email",
-        to: user.email,
-        url,
-      });
-    },
-  },
-  user: {
-    changeEmail: {
-      enabled: true,
-    },
-    additionalFields: {
-      isFullNameVisible: {
-        type: "boolean",
-        required: true,
-        defaultValue: true,
-        input: true,
-      },
-      isUsernameVisible: {
-        type: "boolean",
-        required: true,
-        defaultValue: false,
-      },
-      walletBalance: {
-        type: "number",
-        required: true,
-        defaultValue: 0,
-      },
-    },
-  },
-  plugins: [twoFactor(), username()],
+	database: drizzleAdapter(db, {
+		provider: "pg",
+		schema: userSchema,
+	}),
+	basePath: "/api/user/auth",
+	trustedOrigins: [
+		"http://localhost:5173",
+		"http://localhost:5174",
+		"http://localhost:5175",
+	],
+	emailAndPassword: {
+		enabled: true,
+		requireEmailVerification: true,
+		minPasswordLength: 8,
+		maxPasswordLength: 50,
+	},
+	socialProviders: {
+		google: {
+			clientId: process.env.GOOGLE_CLIENT_ID as string,
+			clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+		},
+	},
+	emailVerification: {
+		sendOnSignUp: true,
+		expiresIn: 10 * 60,
+		autoSignInAfterVerification: true,
+		sendVerificationEmail: async ({ user, url }) => {
+			sendAdminVerificationEmail({
+				subject: "Verify your email",
+				to: user.email,
+				url,
+			});
+		},
+	},
+	user: {
+		changeEmail: {
+			enabled: true,
+		},
+		additionalFields: {
+			isFullNameVisible: {
+				type: "boolean",
+				required: true,
+				defaultValue: true,
+				input: true,
+			},
+			isUsernameVisible: {
+				type: "boolean",
+				required: true,
+				defaultValue: false,
+			},
+			walletBalance: {
+				type: "number",
+				required: true,
+				defaultValue: 0,
+			},
+		},
+	},
+	plugins: [twoFactor(), username()],
 
-  hooks: {
-    after: createAuthMiddleware(async (ctx) => {
-      if (ctx.context.newSession) {
-        const userId = ctx.context.newSession.user.id;
-        const token = jwt.sign(`${userId}`, `${process.env.SOCKET_AUTH_JWT}`);
-        ctx.setCookie("socketIdentity", token, {
-          httpOnly: true,
-          sameSite: "Lax",
-          path: "/",
-          maxAge: 30 * 24 * 60 * 60,
-        });
-      }
-    }),
-  },
+	hooks: {
+		after: createAuthMiddleware(async (ctx) => {
+			if (ctx.context.newSession) {
+				const userId = ctx.context.newSession.user.id;
+				const token = jwt.sign(`${userId}`, `${process.env.SOCKET_AUTH_JWT}`);
+				ctx.setCookie("socketIdentity", token, {
+					httpOnly: true,
+					sameSite: "Lax",
+					path: "/",
+					maxAge: 30 * 24 * 60 * 60,
+				});
+			}
+		}),
+	},
 });
 
 export default userAuth;

@@ -7,12 +7,12 @@ import {
   userSchema,
   userTransactions,
 } from "@repo/db";
+import { Decimal } from "decimal.js";
 import { and, eq, gte, sql } from "drizzle-orm";
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
 import { z } from "zod";
 import { LMSRLogic } from "../lib/lmsr";
 
-import { Decimal } from "decimal.js";
 Decimal.set({ precision: 36 });
 
 class ApiError extends Error {
@@ -32,7 +32,7 @@ const orderDataValidation = z.object({
 });
 
 export const buyOrder = async (req: Request, res: Response) => {
-  //@ts-ignore, getting user
+  //@ts-expect-error, getting user
   const getUserId = req.user.id;
 
   if (!getUserId) {
@@ -90,8 +90,7 @@ export const buyOrder = async (req: Request, res: Response) => {
         }
 
         const selectedOutcomeIndex =
-          getMarketOutcomeAndMarketStatus.titles.findIndex(
-            (title) => title === data.selectedOutcome,
+          getMarketOutcomeAndMarketStatus.titles.indexOf(data.selectedOutcome,
           );
 
         if (selectedOutcomeIndex < 0) {
@@ -212,4 +211,108 @@ export const buyOrder = async (req: Request, res: Response) => {
   }
 };
 
-// export const sellOrder = async (req: Request, res: Response) => {};
+const sellOrderDataValidation = z.object({
+  positionId: z.string(),
+  marketId: z.string(),
+  orderType: orderTypeEnum,
+  orderQty: z.number().min(1, "Minimum order qty is 1"),
+  selectedOutcome: z.string(),
+});
+
+export const sellOrder = async (req: Request, res: Response) => {
+  // @ts-expect-error, getting the user id
+  const getUserId = req.user.id;
+  if (!getUserId) {
+    return res.status(400).json({
+      success: false,
+      message: "Backend did not able to get user id from provided data",
+    });
+  }
+
+  const orderData = req.body;
+
+  const validateData = sellOrderDataValidation.safeParse(orderData);
+
+  const { success, data, error } = validateData;
+
+  if (!success) {
+    const errorMessage = `${error.issues[0].message} ${error.issues[0].path}`;
+    return res.status(400).json({ success: false, message: errorMessage });
+  }
+
+  try {
+    await db.transaction(async (tx) => {
+      const [getPositionDetails] = await tx
+        .select()
+        .from(position)
+        .where(eq(position.id, data.positionId));
+
+      if (!getPositionDetails) {
+        throw new ApiError(
+          "No position available to process with sell order",
+          400,
+        );
+      }
+
+      const [getUser] = await tx
+        .select()
+        .from(userSchema.user)
+        .where(eq(userSchema.user.id, getUserId));
+
+      if (!getUser) {
+        throw new ApiError("User not found with provided data", 400);
+      }
+
+      const [getMarketOutcomeAndMarketStatus] = await tx
+        .select({
+          marketTitle: market.title,
+          status: market.marketStatus,
+          titles: marketOutcomes.titles,
+          prices: marketOutcomes.prices,
+          volumes: marketOutcomes.volume,
+        })
+        .from(marketOutcomes)
+        .innerJoin(
+          market,
+          and(
+            eq(marketOutcomes.marketId, data.marketId),
+            eq(market.marketStatus, "open"),
+          ),
+        );
+      // .for("update");
+
+      if (!getMarketOutcomeAndMarketStatus) {
+        throw new ApiError(
+          `The market with provided id ${data.marketId} is not available to take order`,
+          400,
+        );
+      }
+
+      const selectedOutcomeIndex =
+        getMarketOutcomeAndMarketStatus.titles.indexOf(data.selectedOutcome)
+
+      if (selectedOutcomeIndex < 0) {
+        throw new ApiError(
+          "Invalid outcome selected, try with proper outcome",
+          400,
+        );
+      }
+
+      const volumes = getMarketOutcomeAndMarketStatus.volumes;
+      const lmsr = new LMSRLogic(selectedOutcomeIndex, data.orderQty, volumes);
+
+      const { newPrices, newVolumes, returnToTheUser } = lmsr.sell();
+
+      console.log(newPrices);
+      console.log(returnToTheUser);
+    });
+
+    return res.status(200).json({ success: true, message: "Order successful" });
+  } catch (error: any) {
+    const statusCode = error.statusCode || 500;
+    const errorMessage = error.message || "Internal server error";
+    return res
+      .status(statusCode)
+      .json({ success: false, message: errorMessage });
+  }
+};
