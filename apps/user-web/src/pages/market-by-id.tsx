@@ -49,6 +49,22 @@ interface PositionById {
 	outcome: string;
 	totalCost: string;
 	avgPrice: string;
+	positionQty: number;
+}
+
+interface LatestPrice {
+	marketId: string;
+	prices: {
+		price: string;
+		title: string;
+		volume: number;
+	}[];
+}
+
+interface LatestPriceRes {
+	success: boolean;
+	message: string;
+	latestPrices: LatestPrice[];
 }
 
 interface PositionByIdRes {
@@ -99,6 +115,8 @@ function OverviewTabContent({
 		volume: number;
 	}[];
 }) {
+	const { positions } = useAppStore();
+
 	return (
 		<Card className="px-4">
 			<div>
@@ -110,8 +128,28 @@ function OverviewTabContent({
 					<div key={outcome.outcomeTitle} className="mb-4">
 						<p className="text-lg font-semibold mb-1 flex items-center gap-4">
 							<span>{outcome.outcomeTitle}</span>
-							<span className="text-gray-500">
-								<Badge variant={"outline"}>Volume: {outcome.volume}</Badge>
+							<span className="text-gray-500 space-x-2">
+								<Badge variant={"outline"} className="select-none">
+									Volume: {outcome.volume}
+								</Badge>
+								{positions.find(
+									(position) => position.outcome === outcome.outcomeTitle,
+								) && (
+									<Badge className="bg-green-700 select-none">Position</Badge>
+								)}
+
+								{positions.find(
+									(position) => position.outcome === outcome.outcomeTitle,
+								) && (
+									<Badge className="select-none hover:cursor-pointer">
+										QTY:
+										{positions[
+											positions.findIndex(
+												(position) => position.outcome === outcome.outcomeTitle,
+											)
+										].positionQty * 100}
+									</Badge>
+								)}
 							</span>
 						</p>
 
@@ -382,7 +420,8 @@ export default function MarketById() {
 	const marketId = useParams().id;
 
 	const { sendMessage } = useWebsocket();
-	const { setMarketById, marketById, setPosition } = useAppStore();
+	const { setMarketById, marketById, setPosition, setLatestPrice } =
+		useAppStore();
 	const fetchMarketById = async (): Promise<FetchMarketByIdRes> => {
 		const res = await fetch(
 			`${BACKEND_URL}/market/get-market-by-id?marketId=${marketId}`,
@@ -430,13 +469,40 @@ export default function MarketById() {
 		if (data.success) {
 			setPosition({ positions: data.positions });
 		} else {
-			setPosition({positions: []})
+			setPosition({ positions: [] });
 		}
 	};
 
 	useQuery({
 		queryFn: fetchPositionById,
 		queryKey: ["positionById"],
+	});
+
+	const fetchLatestPrice = async () => {
+		const res = await fetch(
+			`${BACKEND_URL}/user/price/latest-prices?marketId=${marketId}`,
+			{
+				method: "GET",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				credentials: "include",
+			},
+		);
+
+		const response = await res.json();
+		const data = response as LatestPriceRes;
+
+		if (data.success) {
+			setLatestPrice({ latestPrice: data.latestPrices });
+		} else {
+			setLatestPrice({ latestPrice: [] });
+		}
+	};
+
+	useQuery({
+		queryKey: ["fetch-latest-price"],
+		queryFn: fetchLatestPrice,
 	});
 
 	if (isLoading) {

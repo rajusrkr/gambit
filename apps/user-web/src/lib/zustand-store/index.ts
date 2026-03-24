@@ -34,6 +34,16 @@ interface Position {
 	outcome: string;
 	totalCost: string;
 	avgPrice: string;
+	positionQty: number;
+}
+
+interface LatestPrice {
+	marketId: string;
+	prices: {
+		price: string;
+		title: string;
+		volume: number;
+	}[];
 }
 
 interface AppStates {
@@ -56,19 +66,13 @@ interface AppStates {
 		}[];
 	}[];
 
-	latestPrices: {
-		id: string;
-		prices: {
-			price: string;
-			title: string;
-			volume: number;
-		}[];
-	}[];
+	latestPrices: LatestPrice[];
 
 	// Functions
 	setMarkets: ({ markets }: { markets: Market[] }) => void;
 	setMarketById: ({ marketById }: { marketById: MarketById }) => void;
 	setPosition: ({ positions }: { positions: Position[] }) => void;
+	setLatestPrice: ({ latestPrice }: { latestPrice: LatestPrice[] }) => void;
 }
 
 const useAppStore = create(
@@ -112,6 +116,9 @@ const useAppStore = create(
 
 			setPosition: ({ positions }) => {
 				set({ positions });
+			},
+			setLatestPrice: ({ latestPrice }) => {
+				set({ latestPrices: latestPrice });
 			},
 		}),
 		{ name: "app-store" },

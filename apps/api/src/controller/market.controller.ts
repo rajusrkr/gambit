@@ -396,7 +396,7 @@ export const createMarket = async (req: Request, res: Response) => {
 	}
 };
 
-export const getMarkets = async (res: Response) => {
+export const getMarkets = async (req: Request, res: Response) => {
 	try {
 		const markets = await db
 			.select({

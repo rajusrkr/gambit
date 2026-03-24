@@ -6,7 +6,7 @@ import {
 	Router,
 } from "express";
 import { buyOrder, sellOrder } from "../controller/order.controller";
-import { fetchPositions } from "../controller/user.controller";
+import { fetchLatestPrice, fetchPositions } from "../controller/user.controller";
 import { userAuth } from "../lib/better-auth";
 
 const router = Router();
@@ -14,6 +14,7 @@ const router = Router();
 router.post("/user/order/buy", authMiddleWareUser, buyOrder);
 router.post("/user/order/sell", authMiddleWareUser, sellOrder);
 router.get("/user/position/get", authMiddleWareUser, fetchPositions);
+router.get("/user/price/latest-prices", authMiddleWareUser, fetchLatestPrice)
 
 async function authMiddleWareUser(
 	req: Request,
