@@ -29,9 +29,9 @@ export const fetchPositions = async (req: Request, res: Response) => {
 				positionId: position.id,
 				marketId: position.positionTakenIn,
 				outcome: position.positionTakenFor,
-				totalCost: position.atTotalCost,
 				avgPrice: position.avgPrice,
 				positionQty: position.qty,
+				tradeCost: position.atTotalCost,
 			})
 			.from(position)
 			.where(
