@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+export type tabs = "buy" | "sell";
+
 interface Market {
 	id: string;
 	title: string;
@@ -28,16 +30,16 @@ interface MarketById {
 	}[];
 }
 
-interface Position {
+export interface Position {
 	positionId: string;
 	marketId: string;
 	outcome: string;
-	totalCost: string;
 	avgPrice: string;
 	positionQty: number;
+	tradeCost: string;
 }
 
-interface LatestPrice {
+export interface LatestPrice {
 	marketId: string;
 	prices: {
 		price: string;
@@ -67,12 +69,20 @@ interface AppStates {
 	}[];
 
 	latestPrices: LatestPrice[];
+	defaultTab: tabs;
+	selectedPosition: string;
 
 	// Functions
 	setMarkets: ({ markets }: { markets: Market[] }) => void;
 	setMarketById: ({ marketById }: { marketById: MarketById }) => void;
 	setPosition: ({ positions }: { positions: Position[] }) => void;
 	setLatestPrice: ({ latestPrice }: { latestPrice: LatestPrice[] }) => void;
+	setDefaultTab: ({ tab }: { tab: tabs }) => void;
+	setSelectedPosition: ({
+		selectedPosition,
+	}: {
+		selectedPosition: string;
+	}) => void;
 }
 
 const useAppStore = create(
@@ -97,7 +107,8 @@ const useAppStore = create(
 			latestPrices: [],
 
 			positions: [],
-
+			defaultTab: "buy",
+			selectedPosition: "",
 			setMarkets: ({ markets }) => {
 				set((prev) => {
 					const existingMarkets = new Set(
@@ -119,6 +130,12 @@ const useAppStore = create(
 			},
 			setLatestPrice: ({ latestPrice }) => {
 				set({ latestPrices: latestPrice });
+			},
+			setDefaultTab: ({ tab }) => {
+				set({ defaultTab: tab });
+			},
+			setSelectedPosition: ({ selectedPosition }) => {
+				set({ selectedPosition });
 			},
 		}),
 		{ name: "app-store" },

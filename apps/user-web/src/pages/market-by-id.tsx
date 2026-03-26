@@ -1,6 +1,6 @@
 import { IconLoader2 } from "@tabler/icons-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import z from "zod";
@@ -12,8 +12,15 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWebsocket } from "@/components/web-socket-provider";
+import { calculatePnl } from "@/lib/calculate-pnl";
 import { BACKEND_URL } from "@/lib/utils";
 import { useAppStore } from "@/lib/zustand-store";
+import {
+	Item,
+	ItemContent,
+	ItemDescription,
+	ItemTitle,
+} from "@/components/ui/item";
 
 interface MarketById {
 	id: string;
@@ -47,9 +54,9 @@ interface PositionById {
 	positionId: string;
 	marketId: string;
 	outcome: string;
-	totalCost: string;
 	avgPrice: string;
 	positionQty: number;
+	tradeCost: string;
 }
 
 interface LatestPrice {
@@ -82,6 +89,7 @@ const tabs = [
 // ==================================
 // Sub components
 // ==================================
+// Matket details, title, type etc
 function MarketMetaData({
 	title,
 	closing,
@@ -94,18 +102,22 @@ function MarketMetaData({
 	return (
 		<div>
 			<h1 className="text-2xl font-semibold">{title}</h1>
-			<Badge>
-				<span className="capitalize font-semibold">{type}</span>
-			</Badge>
-			<Badge variant={"link"}>
-				<span>Closes: {new Date(closing * 1000).toDateString()}</span>
-			</Badge>
+			<div className="items-center flex gap-2">
+				<Badge>
+					<span className="capitalize font-semibold">{type}</span>
+				</Badge>
+				<span className="text-xs text-gray-400">
+					Closes: {new Date(closing * 1000).toDateString()}
+				</span>
+			</div>
 		</div>
 	);
 }
+// Chart tab
 function ChartTabContent() {
 	return <div>chart tab content</div>;
 }
+// Overview tab
 function OverviewTabContent({
 	outcomes,
 }: {
@@ -115,7 +127,9 @@ function OverviewTabContent({
 		volume: number;
 	}[];
 }) {
-	const { positions } = useAppStore();
+	const marketId = useParams().id;
+	const { positions, latestPrices, setDefaultTab, setSelectedPosition } =
+		useAppStore();
 
 	return (
 		<Card className="px-4">
@@ -135,19 +149,54 @@ function OverviewTabContent({
 								{positions.find(
 									(position) => position.outcome === outcome.outcomeTitle,
 								) && (
-									<Badge className="bg-green-700 select-none">Position</Badge>
+									<Badge className="select-none">
+										<span className="font-semibold">Position</span>
+									</Badge>
 								)}
 
 								{positions.find(
 									(position) => position.outcome === outcome.outcomeTitle,
 								) && (
-									<Badge className="select-none hover:cursor-pointer">
-										QTY:
-										{positions[
-											positions.findIndex(
-												(position) => position.outcome === outcome.outcomeTitle,
-											)
-										].positionQty * 100}
+									<Badge
+										onClick={() => {
+											setDefaultTab({ tab: "sell" });
+											setSelectedPosition({
+												selectedPosition: outcome.outcomeTitle,
+											});
+										}}
+										className={`${
+											calculatePnl({
+												// biome-ignore lint/style/noNonNullAssertion: <market id is mandatory to render this page component>
+												marketId: marketId!,
+												latestPrices: latestPrices,
+												outcomeTitle: outcome.outcomeTitle,
+												positions: positions,
+											}) > 0 && "bg-green-700"
+										} select-none hover:cursor-pointer`}
+										variant={
+											calculatePnl({
+												// biome-ignore lint/style/noNonNullAssertion: <market id is mandatory to render this page component>
+												marketId: marketId!,
+												latestPrices: latestPrices,
+												outcomeTitle: outcome.outcomeTitle,
+												positions: positions,
+											}) < 0
+												? "destructive"
+												: "default"
+										}
+									>
+										<span className="font-semibold">
+											PNL:{" "}
+											{String(
+												calculatePnl({
+													// biome-ignore lint/style/noNonNullAssertion: <market id is mandatory to render this page component>
+													marketId: marketId!,
+													latestPrices: latestPrices,
+													outcomeTitle: outcome.outcomeTitle,
+													positions: positions,
+												}),
+											)}
+										</span>
 									</Badge>
 								)}
 							</span>
@@ -163,7 +212,7 @@ function OverviewTabContent({
 							<div className="flex gap-2 whitespace-nowrap text-sm font-medium">
 								<span>
 									<Badge variant={"outline"}>
-										{Number(Number(outcome.price).toFixed(2)) * 100}%
+										{Number(Math.floor(Number(outcome.price) * 100))}%
 									</Badge>
 								</span>
 							</div>
@@ -174,13 +223,15 @@ function OverviewTabContent({
 		</Card>
 	);
 }
+// Discussions tab
 function DiscussionsTabContent() {
 	return <Card className="px-4">DiscussionsTabContent</Card>;
 }
+// History tab
 function HistoryTabContent() {
 	return <Card className="px-4">HistoryTabContent</Card>;
 }
-
+// Main card holding all four tab data
 function DataCard({
 	outcomes,
 }: {
@@ -218,6 +269,7 @@ function DataCard({
 		</Card>
 	);
 }
+// Descriptions and settlement rules
 function MarketDescriptionAndSettlementRules({
 	description,
 	settlementRules,
@@ -234,6 +286,7 @@ function MarketDescriptionAndSettlementRules({
 		</div>
 	);
 }
+// Order card
 function OrderCard({
 	outcomes,
 }: {
@@ -247,6 +300,15 @@ function OrderCard({
 	const [selectOutcome, setSelectedOutcome] = useState<null | string>(null);
 	const [quantity, setQuantity] = useState<number>(0);
 	const [currentTab, setCurrentTab] = useState<"buy" | "sell">("buy");
+
+	const {
+		positions,
+		latestPrices,
+		defaultTab,
+		selectedPosition,
+		setSelectedPosition,
+		setDefaultTab,
+	} = useAppStore();
 
 	const orderDataValidation = z.object({
 		marketId: z.string(),
@@ -308,6 +370,12 @@ function OrderCard({
 			}),
 	});
 
+	useEffect(() => {
+		if (positions.length === 0) {
+			setDefaultTab({ tab: "buy" });
+		}
+	}, [positions, setDefaultTab]);
+
 	return (
 		<Card>
 			<CardHeader>
@@ -315,14 +383,18 @@ function OrderCard({
 			</CardHeader>
 			<CardContent className="space-y-2">
 				<Tabs
-					defaultValue="buy"
+					defaultValue={"buy"}
+					value={defaultTab}
 					onValueChange={(e) => {
+						setDefaultTab({ tab: e as "buy" | "sell" });
 						setCurrentTab(e as "buy" | "sell");
 					}}
 				>
 					<TabsList variant={"line"}>
 						<TabsTrigger value="buy">Buy</TabsTrigger>
-						<TabsTrigger value="sell">Sell</TabsTrigger>
+						{positions.length !== 0 && (
+							<TabsTrigger value="sell">Positions</TabsTrigger>
+						)}
 					</TabsList>
 
 					<TabsContent value="buy">
@@ -369,18 +441,38 @@ function OrderCard({
 					</TabsContent>
 					<TabsContent value="sell">
 						<div className="flex flex-col space-y-1">
-							{outcomes.map((outcome, i) => (
-								<Button
-									key={outcome.outcomeTitle}
+							{positions.map((position) => (
+								<Item
+									key={position.outcome}
+									variant={"outline"}
+									className={`${selectedPosition === position.outcome && "bg-foreground text-background"} hover:cursor-pointer`}
 									onClick={() => {
-										setSelectedButton(i);
-										setSelectedOutcome(outcome.outcomeTitle);
+										setSelectedPosition({ selectedPosition: position.outcome });
 									}}
-									variant={i === selectedButton ? "secondary" : "outline"}
-									className={`${i === selectedButton && "bg-accent-foreground text-accent hover:bg-accent-foreground"}`}
 								>
-									{outcome.outcomeTitle}
-								</Button>
+									<ItemContent>
+										<ItemTitle>{position.outcome}</ItemTitle>
+										<ItemDescription>
+											<span>
+												PNL:{" "}
+												{calculatePnl({
+													// biome-ignore lint/style/noNonNullAssertion: <market id is mandatory to render this page component>
+													marketId: marketId!,
+													latestPrices: latestPrices,
+													outcomeTitle: position.outcome,
+													positions: positions,
+												})}
+											</span>
+											<span className="flex gap-2">
+												<span>QTY: {position.positionQty}</span>
+												<span>
+													Avg Price:{" "}
+													{Math.floor(Number(position.avgPrice) * 100) / 100}
+												</span>
+											</span>
+										</ItemDescription>
+									</ItemContent>
+								</Item>
 							))}
 						</div>
 						<div className="py-2">
@@ -388,6 +480,7 @@ function OrderCard({
 								Quantity
 							</Label>
 							<Input
+								disabled={selectedPosition.length === 0}
 								type="number"
 								required
 								placeholder="Enter qty. eg: 100"
@@ -401,7 +494,7 @@ function OrderCard({
 							<Button
 								className="w-full"
 								variant={"destructive"}
-								disabled={quantity === 0 || !selectOutcome}
+								disabled={quantity === 0}
 								onClick={() => {
 									mutate();
 								}}
@@ -473,7 +566,7 @@ export default function MarketById() {
 		}
 	};
 
-	useQuery({
+	const fetchPositions = useQuery({
 		queryFn: fetchPositionById,
 		queryKey: ["positionById"],
 	});
@@ -500,12 +593,28 @@ export default function MarketById() {
 		}
 	};
 
-	useQuery({
+	const fetchLatestPrices = useQuery({
 		queryKey: ["fetch-latest-price"],
 		queryFn: fetchLatestPrice,
 	});
 
 	if (isLoading) {
+		return (
+			<div className="flex justify-center items-center h-[80vh]">
+				<IconLoader2 size={25} className="animate-spin" />
+			</div>
+		);
+	}
+
+	if (fetchPositions.isLoading) {
+		return (
+			<div className="flex justify-center items-center h-[80vh]">
+				<IconLoader2 size={25} className="animate-spin" />
+			</div>
+		);
+	}
+
+	if (fetchLatestPrices.isLoading) {
 		return (
 			<div className="flex justify-center items-center h-[80vh]">
 				<IconLoader2 size={25} className="animate-spin" />
