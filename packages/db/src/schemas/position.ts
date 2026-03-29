@@ -32,7 +32,9 @@ export const position = pgTable(
 		positionTakenFor: text("position_taken_for").notNull(),
 
 		buyQty: integer("buy_qty").notNull(),
-		sellQty: integer("sell_qty"),
+		sellQty: integer("sell_qty").notNull().default(0),
+		availableQty: integer("available_qty").notNull().default(0),
+
 		buyTradeCost: decimal("buy_trade_cost", {
 			precision: 36,
 			scale: 18,
@@ -42,7 +44,9 @@ export const position = pgTable(
 			precision: 36,
 			scale: 18,
 			mode: "string",
-		}),
+		})
+			.notNull()
+			.default("0"),
 		buyAvgPrice: decimal("buy_avg_price", {
 			precision: 36,
 			scale: 18,
@@ -52,12 +56,16 @@ export const position = pgTable(
 			precision: 36,
 			scale: 18,
 			mode: "string",
-		}),
+		})
+			.notNull()
+			.default("0"),
 		realizedPnl: decimal("realized_pnl", {
 			precision: 36,
 			scale: 18,
 			mode: "string",
-		}),
+		})
+			.notNull()
+			.default("0"),
 		positionStatus: positionStatus("position_status").notNull(),
 
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),

@@ -176,6 +176,13 @@
       "when": 1774602207228,
       "tag": "0024_simple_hex",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1774780989340,
+      "tag": "0025_premium_peter_quill",
+      "breakpoints": true
     }
   ]
 }
