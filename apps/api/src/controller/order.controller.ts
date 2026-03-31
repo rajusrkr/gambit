@@ -14,6 +14,8 @@ import { z } from "zod";
 import { LMSRLogic } from "../lib/lmsr";
 
 Decimal.set({ precision: 36 });
+
+// Error message
 class ApiError extends Error {
 	public statusCode: number;
 	constructor(message: string, statusCode: number) {
@@ -22,6 +24,7 @@ class ApiError extends Error {
 	}
 }
 
+// Zod validations
 const orderTypeEnum = z.enum(["buy", "sell"]);
 const orderDataValidation = z.object({
 	marketId: z.string(),
@@ -37,6 +40,7 @@ const sellOrderDataValidation = z.object({
 	selectedOutcome: z.string(),
 });
 
+// Buy order
 export const buyOrder = async (req: Request, res: Response) => {
 	//@ts-expect-error, getting user
 	const getUserId = req.user.id;
@@ -160,9 +164,10 @@ export const buyOrder = async (req: Request, res: Response) => {
 						positionTakenFor: data.selectedOutcome,
 						positionTakenIn: data.marketId,
 						positionStatus: "open",
-						qty: data.orderQty,
-						atTotalCost: String(tradeCost),
-						avgPrice: avgPricePerShare,
+						buyQty: data.orderQty,
+						availableQty: data.orderQty,
+						buyTradeCost: String(tradeCost),
+						buyAvgPrice: avgPricePerShare,
 					})
 					.onConflictDoUpdate({
 						target: [
@@ -171,9 +176,13 @@ export const buyOrder = async (req: Request, res: Response) => {
 							position.positionTakenIn,
 						],
 						set: {
-							qty: sql`${position.qty} + ${data.orderQty}`,
-							atTotalCost: sql`${position.atTotalCost} + ${String(tradeCost)}::numeric(36,18)`,
-							avgPrice: sql`(${position.atTotalCost} + ${String(tradeCost)}::numeric(36,18)) / ((${position.qty} + ${String(data.orderQty)})::numeric(36,18))`,
+							buyQty: sql`${position.buyQty} + ${data.orderQty}`,
+
+							buyTradeCost: sql`${position.buyTradeCost} + ${String(tradeCost)}::numeric(36,18)`,
+
+							buyAvgPrice: sql`(${position.buyTradeCost} + ${String(tradeCost)}::numeric(36,18)) / ((${position.buyQty} + ${String(data.orderQty)})::numeric(36,18))`,
+
+							availableQty: sql`COALESCE(${position.availableQty}, 0) + ${data.orderQty}`,
 						},
 					});
 
@@ -216,6 +225,7 @@ export const buyOrder = async (req: Request, res: Response) => {
 	}
 };
 
+// Sell order
 export const sellOrder = async (req: Request, res: Response) => {
 	// @ts-expect-error, getting the user id
 	const getUserId = req.user.id;
@@ -227,9 +237,7 @@ export const sellOrder = async (req: Request, res: Response) => {
 	}
 
 	const orderData = req.body;
-
 	const validateData = sellOrderDataValidation.safeParse(orderData);
-
 	const { success, data, error } = validateData;
 
 	if (!success) {
@@ -238,78 +246,213 @@ export const sellOrder = async (req: Request, res: Response) => {
 	}
 
 	try {
-		await db.transaction(async (tx) => {
-			const [getPositionDetails] = await tx
-				.select()
-				.from(position)
-				.where(eq(position.id, data.positionId));
+		const dbTransactionResult = await db.transaction(
+			async (tx): Promise<{ orderId: string }> => {
+				const [getPositionDetails] = await tx
+					.select()
+					.from(position)
+					.where(eq(position.id, data.positionId));
 
-			if (!getPositionDetails) {
-				throw new ApiError(
-					"No position available to process with sell order",
-					400,
+				if (!getPositionDetails) {
+					throw new ApiError(
+						"No position available to process with sell order",
+						400,
+					);
+				}
+
+				if (getPositionDetails.availableQty < data.orderQty) {
+					throw new ApiError(
+						"Quantity is not sufficient to proceed with sell order",
+						400,
+					);
+				}
+
+				const [getUser] = await tx
+					.select()
+					.from(userSchema.user)
+					.where(eq(userSchema.user.id, getUserId));
+
+				if (!getUser) {
+					throw new ApiError("User not found with provided data", 400);
+				}
+
+				const [getMarketOutcomeAndMarketStatus] = await tx
+					.select({
+						marketTitle: market.title,
+						status: market.marketStatus,
+						titles: marketOutcomes.titles,
+						prices: marketOutcomes.prices,
+						volumes: marketOutcomes.volume,
+					})
+					.from(marketOutcomes)
+					.innerJoin(
+						market,
+						and(
+							eq(marketOutcomes.marketId, data.marketId),
+							eq(market.marketStatus, "open"),
+						),
+					)
+					.for("update");
+
+				if (!getMarketOutcomeAndMarketStatus) {
+					throw new ApiError(
+						`The market with provided id ${data.marketId} is not available to take order`,
+						400,
+					);
+				}
+
+				const selectedOutcomeIndex =
+					getMarketOutcomeAndMarketStatus.titles.indexOf(data.selectedOutcome);
+
+				if (selectedOutcomeIndex < 0) {
+					throw new ApiError(
+						"Invalid outcome selected, try with proper outcome",
+						400,
+					);
+				}
+
+				const volumes = getMarketOutcomeAndMarketStatus.volumes;
+				const lmsr = new LMSRLogic(
+					selectedOutcomeIndex,
+					data.orderQty,
+					volumes,
 				);
-			}
 
-			const [getUser] = await tx
-				.select()
-				.from(userSchema.user)
-				.where(eq(userSchema.user.id, getUserId));
+				const { newPrices, newVolumes, returnToTheUser } = lmsr.sell();
 
-			if (!getUser) {
-				throw new ApiError("User not found with provided data", 400);
-			}
+				const newOutcomesVolumeAndPrices =
+					getMarketOutcomeAndMarketStatus.titles.map((outcome, i) => ({
+						title: outcome,
+						price: String(newPrices[i]),
+						volume: Number(newVolumes[i]),
+					}));
 
-			const [getMarketOutcomeAndMarketStatus] = await tx
-				.select({
-					marketTitle: market.title,
-					status: market.marketStatus,
-					titles: marketOutcomes.titles,
-					prices: marketOutcomes.prices,
-					volumes: marketOutcomes.volume,
-				})
-				.from(marketOutcomes)
-				.innerJoin(
-					market,
-					and(
-						eq(marketOutcomes.marketId, data.marketId),
-						eq(market.marketStatus, "open"),
-					),
+				const walletBalanceUpdate = await tx
+					.update(userSchema.user)
+					.set({
+						walletBalance: sql`${userSchema.user.walletBalance} + ${String(returnToTheUser)}`,
+					})
+					.where(eq(userSchema.user.id, getUserId));
+
+				if (walletBalanceUpdate.rowCount === 0) {
+					throw new ApiError(
+						"Unable to update user wallet balance, aborting.",
+						500,
+					);
+				}
+
+				await tx.insert(userTransactions).values({
+					transactionType: "credit",
+					reason: "trade:sell",
+					details: `Sold ${data.orderQty} qty of ${getMarketOutcomeAndMarketStatus.marketTitle} for outcome ${data.selectedOutcome}`,
+					amount: String(returnToTheUser),
+				});
+
+				const avgPricePerShare = new Decimal(String(returnToTheUser)).div(
+					String(data.orderQty),
 				);
-			// .for("update");
 
-			if (!getMarketOutcomeAndMarketStatus) {
-				throw new ApiError(
-					`The market with provided id ${data.marketId} is not available to take order`,
-					400,
-				);
-			}
+				const updatePosition = await tx
+					.update(position)
+					.set({
+						sellQty: sql`COALESCE(${position.sellQty}, 0) + ${data.orderQty}`,
 
-			const selectedOutcomeIndex =
-				getMarketOutcomeAndMarketStatus.titles.indexOf(data.selectedOutcome);
+						sellTradeReturn: sql`COALESCE(${position.sellTradeReturn}, 0) + ${String(returnToTheUser)}::numeric(36,18)`,
 
-			if (selectedOutcomeIndex < 0) {
-				throw new ApiError(
-					"Invalid outcome selected, try with proper outcome",
-					400,
-				);
-			}
+						sellAvgPrice: sql`(COALESCE(${position.sellTradeReturn}, 0) + ${String(returnToTheUser)}::numeric(36,18)) / ((COALESCE(${position.sellQty}, 0) + ${String(data.orderQty)})::numeric(36,18))`,
 
-			const volumes = getMarketOutcomeAndMarketStatus.volumes;
-			const lmsr = new LMSRLogic(selectedOutcomeIndex, data.orderQty, volumes);
+						// New logic
+						realizedPnl: sql`((${String(avgPricePerShare)} - ${position.buyAvgPrice}) * ${data.orderQty})::numeric(36,18) + (COALESCE(${position.realizedPnl}, 0))`,
 
-			const { newPrices, newVolumes, returnToTheUser } = lmsr.sell();
+						// Available qty minus order qty
+						availableQty: sql`COALESCE(${position.availableQty}, 0) - ${data.orderQty}`,
+					})
+					.where(eq(position.id, data.positionId))
+					.returning();
 
-			console.log(newPrices);
-			console.log(returnToTheUser);
+				console.log(updatePosition);
+				console.log(returnToTheUser);
+
+				const [newOrder] = await tx
+					.insert(order)
+					.values({
+						orderPlacedBy: getUserId,
+						orderPlacedFor: data.selectedOutcome,
+						orderStatus: "success",
+						orderTakenIn: data.marketId,
+						orderType: "sell",
+						qty: data.orderQty,
+						averageTradedPrice: String(avgPricePerShare),
+						updatedPrices: newOutcomesVolumeAndPrices,
+					})
+					.returning({ id: order.id });
+
+				await tx
+					.update(marketOutcomes)
+					.set({
+						prices: newPrices,
+						volume: newVolumes,
+					})
+					.where(eq(marketOutcomes.marketId, data.marketId));
+
+				return { orderId: newOrder.id };
+			},
+		);
+
+		return res.status(200).json({
+			success: true,
+			message: `Order successful. Order id: ${dbTransactionResult.orderId}`,
 		});
-
-		return res.status(200).json({ success: true, message: "Order successful" });
 	} catch (error: any) {
 		const statusCode = error.statusCode || 500;
 		const errorMessage = error.message || "Internal server error";
 		return res
 			.status(statusCode)
 			.json({ success: false, message: errorMessage });
+	}
+};
+
+// Order history of all users for a particular market
+export const orderHistory = async (req: Request, res: Response) => {
+	const params = req.query;
+	const marketId = params.marketId;
+
+	if (!marketId) {
+		return res.status(400).json({
+			success: false,
+			message:
+				"Market id is undefined. Market id is required to fetch order history",
+		});
+	}
+
+	try {
+		const getOrderHistory = await db
+			.select({
+				outcome: order.orderPlacedFor,
+				qty: order.qty,
+				avgPrice: order.averageTradedPrice,
+				orderedBy: userSchema.user.name,
+				orderId: order.id,
+			})
+			.from(order)
+			.where(eq(order.orderTakenIn, String(marketId)))
+			.innerJoin(userSchema.user, eq(userSchema.user.id, order.orderPlacedBy));
+
+		if (getOrderHistory.length === 0) {
+			return res
+				.status(200)
+				.json({ success: false, messafe: "No order found for this market" });
+		}
+
+		return res.status(200).json({
+			success: true,
+			message: "Market order history fetched successfully",
+			orders: getOrderHistory,
+		});
+	} catch (error) {
+		return res.status(500).json({
+			success: false,
+			message: `${error instanceof Error ? `${error.message}` : "Internal server error"}`,
+		});
 	}
 };

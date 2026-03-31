@@ -416,7 +416,11 @@ export const getMarkets = async (req: Request, res: Response) => {
 			.orderBy(desc(market.createdAt));
 
 		if (markets.length === 0) {
-			throw new ApiError("No market available to show", 400);
+			return res.status(200).json({
+				success: true,
+				message: "No markets available",
+				markets: [],
+			});
 		}
 
 		const formatMarketData = getFormattedMarketData({ markets });
