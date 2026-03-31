@@ -3,6 +3,12 @@ import { persist } from "zustand/middleware";
 
 export type tabs = "buy" | "sell";
 
+interface Discussions {
+	id: string;
+	message: string;
+	user: string;
+}
+
 interface Market {
 	id: string;
 	title: string;
@@ -76,6 +82,8 @@ interface AppStates {
 		}[];
 	}[];
 
+	discussions: Discussions[];
+
 	latestPrices: LatestPrice[];
 	defaultTab: tabs;
 	selectedPosition: string;
@@ -93,6 +101,7 @@ interface AppStates {
 		selectedPosition: string;
 	}) => void;
 	setOrderHistory: ({ orders }: { orders: FetchOrderHistoy[] }) => void;
+	setDiscussion: ({ discussion }: { discussion: Discussions }) => void;
 }
 
 const useAppStore = create(
@@ -116,6 +125,29 @@ const useAppStore = create(
 
 			latestPrices: [],
 			orders: [],
+			discussions: [
+				{ user: "Sam", message: "Hey there", id: "1" },
+				{
+					user: "Sam",
+					message: "What do you guys thing where the price will reach?",
+					id: "2",
+				},
+				{ user: "Jason", message: "Man its hard to tell", id: "3" },
+				{ user: "Jim", message: "Yeah it's hard to tell", id: "4" },
+				{
+					user: "Jason",
+					message: "Let's see what happens we have a news to come this evening",
+					id: "5",
+				},
+				{ user: "Sam", message: "Yeah let's see what happens", id: "6" },
+				{ user: "Sam", message: "Yeah let's see what happens", id: "7" },
+				{
+					user: "Jason",
+					message: "Let's see what happens we have a news to come this evening",
+					id: "8",
+				},
+				{ user: "Sam", message: "Yeah let's see what happens", id: "9" },
+			],
 
 			positions: [],
 			defaultTab: "buy",
@@ -155,6 +187,11 @@ const useAppStore = create(
 			},
 			setOrderHistory: ({ orders }) => {
 				set({ orders: orders });
+			},
+			setDiscussion: ({ discussion }) => {
+				set((prev) => ({
+					discussions: [...prev.discussions, discussion],
+				}));
 			},
 		}),
 		{ name: "app-store" },

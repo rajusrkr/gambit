@@ -5,7 +5,7 @@ import {
 	IconSend,
 } from "@tabler/icons-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import z from "zod";
@@ -15,7 +15,6 @@ import {
 	Card,
 	CardContent,
 	CardDescription,
-	CardFooter,
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
@@ -121,23 +120,6 @@ const tabs = [
 	{ value: "overview", title: "Overview" },
 	{ value: "discussions", title: "Discussions" },
 	{ value: "history", title: "History" },
-];
-
-const discussions = [
-	{ user: "Sam", message: "Hey there", id: 1 },
-	{
-		user: "Sam",
-		message: "What do you guys thing where the price will reach?",
-		id: 2,
-	},
-	{ user: "Jason", message: "Man its hard to tell", id: 3 },
-	{ user: "Jim", message: "Yeah it's hard to tell", id: 4 },
-	{
-		user: "Jason",
-		message: "Let's see what happens we have a news to come this evening",
-		id: 5,
-	},
-	{ user: "Sam", message: "Yeah let's see what happens", id: 6 },
 ];
 
 // ==================================
@@ -279,8 +261,49 @@ function OverviewTabContent({
 }
 // Discussions tab
 function DiscussionsTabContent() {
+	const [message, setMessage] = useState("");
+
+	const { setDiscussion, discussions } = useAppStore();
+
+	const scrollRef = useRef<HTMLDivElement>(null);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: <discussions dependency is needed to update container position>
+	useEffect(() => {
+		const container = scrollRef.current;
+
+		if (container) {
+			/**
+			 * Total height of the message, how much scrolled from the top, what is client height
+			 *
+			 *
+			 * Subtract three and get the rest of the scrollheight
+			 *
+			 * if scroll height is less than 500 that means the user in the bottom
+			 */
+			const distanceToBottom =
+				container.scrollHeight - container.scrollTop - container.clientHeight;
+			const isNearBottom = distanceToBottom < 500;
+
+			if (isNearBottom) {
+				container.scrollTo({
+					top: container.scrollHeight,
+					behavior: "smooth",
+				});
+			}
+		}
+	}, [discussions]);
+
+	useEffect(() => {
+		if (scrollRef.current) {
+			scrollRef.current.scrollTo({
+				top: scrollRef.current.scrollHeight,
+				behavior: "smooth",
+			});
+		}
+	}, []);
+
 	return (
-		<Card className="">
+		<Card>
 			<CardHeader>
 				<CardTitle>Discuss about this event</CardTitle>
 				<CardDescription>
@@ -289,7 +312,10 @@ function DiscussionsTabContent() {
 			</CardHeader>
 
 			<CardContent>
-				<div className="max-h-96 overflow-y-auto no-scrollbar mask-[linear-gradient(to_bottom,black_80%,transparent_100%)] pb-10">
+				<div
+					ref={scrollRef}
+					className="max-h-96 overflow-y-auto no-scrollbar mask-[linear-gradient(to_bottom,black_80%,transparent_100%)] pb-10"
+				>
 					{discussions.map((discussion) => (
 						<Item
 							key={discussion.id}
@@ -314,8 +340,20 @@ function DiscussionsTabContent() {
 				</div>
 				<div>
 					<div className="flex justify-between">
-						<Textarea placeholder="Message" />
-						<Button className="h-16 w-20 space-x-2">
+						<Textarea
+							placeholder="Message"
+							onChange={(e) => {
+								setMessage(e.target.value);
+							}}
+						/>
+						<Button
+							className="h-16 w-20 space-x-2"
+							onClick={() => {
+								setDiscussion({
+									discussion: { id: "30", message: message, user: "Jason" },
+								});
+							}}
+						>
 							<IconSend className="size-6" />
 						</Button>
 					</div>
@@ -330,7 +368,7 @@ function HistoryTabContent() {
 
 	return (
 		<div>
-			<Card className="max-h-96 overflow-y-auto no-scrollbar mask-[linear-gradient(to_bottom,black_80%,transparent_100%)] pb-10">
+			<Card className="">
 				<CardHeader>
 					<CardTitle>Order history</CardTitle>
 					<CardDescription>
@@ -352,7 +390,7 @@ function HistoryTabContent() {
 							</ItemContent>
 						</Item>
 					) : (
-						<div className="space-y-1">
+						<div className="space-y-1 max-h-96 overflow-y-auto no-scrollbar mask-[linear-gradient(to_bottom,black_80%,transparent_100%)] pb-10">
 							{orders.map((order) => (
 								<Item key={order.orderId} variant={"outline"}>
 									<ItemMedia>
@@ -390,7 +428,7 @@ function DataCard({
 }) {
 	return (
 		<Card className="px-4 max-w-4xl">
-			<Tabs defaultValue="chart">
+			<Tabs defaultValue="discussions">
 				<TabsList variant={"line"}>
 					{tabs.map((tab) => (
 						<TabsTrigger value={tab.value} key={tab.title}>
