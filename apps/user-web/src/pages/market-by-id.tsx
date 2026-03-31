@@ -1,4 +1,9 @@
-import { IconBook2, IconCircleX, IconLoader2 } from "@tabler/icons-react";
+import {
+	IconBook2,
+	IconCircleX,
+	IconLoader2,
+	IconSend,
+} from "@tabler/icons-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -10,6 +15,7 @@ import {
 	Card,
 	CardContent,
 	CardDescription,
+	CardFooter,
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
@@ -28,6 +34,7 @@ import {
 	ItemMedia,
 	ItemTitle,
 } from "@/components/ui/item";
+import { Textarea } from "@/components/ui/textarea";
 
 interface MarketById {
 	id: string;
@@ -115,6 +122,24 @@ const tabs = [
 	{ value: "discussions", title: "Discussions" },
 	{ value: "history", title: "History" },
 ];
+
+const discussions = [
+	{ user: "Sam", message: "Hey there", id: 1 },
+	{
+		user: "Sam",
+		message: "What do you guys thing where the price will reach?",
+		id: 2,
+	},
+	{ user: "Jason", message: "Man its hard to tell", id: 3 },
+	{ user: "Jim", message: "Yeah it's hard to tell", id: 4 },
+	{
+		user: "Jason",
+		message: "Let's see what happens we have a news to come this evening",
+		id: 5,
+	},
+	{ user: "Sam", message: "Yeah let's see what happens", id: 6 },
+];
+
 // ==================================
 // Sub components
 // ==================================
@@ -254,7 +279,50 @@ function OverviewTabContent({
 }
 // Discussions tab
 function DiscussionsTabContent() {
-	return <Card className="px-4">DiscussionsTabContent</Card>;
+	return (
+		<Card className="">
+			<CardHeader>
+				<CardTitle>Discuss about this event</CardTitle>
+				<CardDescription>
+					Discuss about this event with your fellow traders
+				</CardDescription>
+			</CardHeader>
+
+			<CardContent>
+				<div className="max-h-96 overflow-y-auto no-scrollbar mask-[linear-gradient(to_bottom,black_80%,transparent_100%)] pb-10">
+					{discussions.map((discussion) => (
+						<Item
+							key={discussion.id}
+							className={`${discussion.user === "Jason" ? "justify-end" : "justify-start"}`}
+						>
+							<div
+								className={`${discussion.user === "Jason" ? "bg-primary" : "bg-accent"} p-2 rounded-sm`}
+							>
+								<ItemTitle
+									className={`${discussion.user === "Jason" && "dark:text-white text-white"}`}
+								>
+									{discussion.message}
+								</ItemTitle>
+								<ItemDescription
+									className={`${discussion.user === "Jason" && "dark:text-gray-400 text-gray-300"}`}
+								>
+									{discussion.user === "Jason" ? "You" : discussion.user}
+								</ItemDescription>
+							</div>
+						</Item>
+					))}
+				</div>
+				<div>
+					<div className="flex justify-between">
+						<Textarea placeholder="Message" />
+						<Button className="h-16 w-20 space-x-2">
+							<IconSend className="size-6" />
+						</Button>
+					</div>
+				</div>
+			</CardContent>
+		</Card>
+	);
 }
 // History tab
 function HistoryTabContent() {
@@ -293,8 +361,11 @@ function HistoryTabContent() {
 									<ItemContent>
 										<ItemTitle>Outcome: {order.outcome}</ItemTitle>
 										<ItemDescription className="flex gap-2">
-											<p>QTY: {(order.qty)}</p>
-											<p>Avg Price: {Math.floor(Number(order.avgPrice) * 100) / 100}</p>
+											<p>QTY: {order.qty}</p>
+											<p>
+												Avg Price:{" "}
+												{Math.floor(Number(order.avgPrice) * 100) / 100}
+											</p>
 											<p>Ordered By: {order.orderedBy}</p>
 										</ItemDescription>
 									</ItemContent>
