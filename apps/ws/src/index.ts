@@ -1,7 +1,7 @@
 import dotenv from "dotenv"
-import { setupWS } from "./lib/server";
+import http from "node:http";
 import express from "express";
-import http from "http";
+import { setupWS } from "./lib/server";
 
 dotenv.config()
 const app = express();

@@ -1,3 +1,3 @@
-import { type Message, type MessageType } from "./ws/index";
+import type { Message, MessageType } from "./ws/index";
 
-export { type Message, type MessageType };
+export type { Message, MessageType };

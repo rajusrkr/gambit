@@ -22,7 +22,6 @@ function authenticateUser(req: IncomingMessage): string | null {
     const cookieObj = Object.fromEntries(
       cookies.split(";").map((c) => c.trim().split("=")),
     );
-    const secret = process.env.SOCKET_AUTH_JWT;
 
     const decode = jwt.verify(
       cookieObj.socketIdentity,
