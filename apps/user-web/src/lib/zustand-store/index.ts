@@ -48,6 +48,14 @@ export interface LatestPrice {
 	}[];
 }
 
+interface FetchOrderHistoy {
+	outcome: string;
+	qty: number;
+	avgPrice: string;
+	orderedBy: string;
+	orderId: string;
+}
+
 interface AppStates {
 	isLoading: boolean;
 	isError: boolean;
@@ -71,6 +79,7 @@ interface AppStates {
 	latestPrices: LatestPrice[];
 	defaultTab: tabs;
 	selectedPosition: string;
+	orders: FetchOrderHistoy[];
 
 	// Functions
 	setMarkets: ({ markets }: { markets: Market[] }) => void;
@@ -83,6 +92,7 @@ interface AppStates {
 	}: {
 		selectedPosition: string;
 	}) => void;
+	setOrderHistory: ({ orders }: { orders: FetchOrderHistoy[] }) => void;
 }
 
 const useAppStore = create(
@@ -105,12 +115,18 @@ const useAppStore = create(
 			markets: [],
 
 			latestPrices: [],
+			orders: [],
 
 			positions: [],
 			defaultTab: "buy",
 			selectedPosition: "",
 			setMarkets: ({ markets }) => {
+				console.log("setting data");
 				set((prev) => {
+					if (prev.markets.length < 10) {
+						return { markets: markets };
+					}
+
 					const existingMarkets = new Set(
 						prev.markets.map((market) => market.id),
 					);
@@ -136,6 +152,9 @@ const useAppStore = create(
 			},
 			setSelectedPosition: ({ selectedPosition }) => {
 				set({ selectedPosition });
+			},
+			setOrderHistory: ({ orders }) => {
+				set({ orders: orders });
 			},
 		}),
 		{ name: "app-store" },

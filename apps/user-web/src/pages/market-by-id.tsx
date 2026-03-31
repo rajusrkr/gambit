@@ -1,4 +1,4 @@
-import { IconLoader2 } from "@tabler/icons-react";
+import { IconBook2, IconCircleX, IconLoader2 } from "@tabler/icons-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -6,7 +6,13 @@ import { toast } from "sonner";
 import z from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
@@ -19,6 +25,7 @@ import {
 	Item,
 	ItemContent,
 	ItemDescription,
+	ItemMedia,
 	ItemTitle,
 } from "@/components/ui/item";
 
@@ -44,6 +51,14 @@ interface FetchMarketByIdRes {
 }
 
 interface OrderData {
+	marketId: string;
+	orderType: "buy" | "sell";
+	orderQty: number;
+	selectedOutcome: string;
+}
+
+interface SellOrderData {
+	positionId: string;
 	marketId: string;
 	orderType: "buy" | "sell";
 	orderQty: number;
@@ -78,6 +93,20 @@ interface PositionByIdRes {
 	success: boolean;
 	message: string;
 	positions: PositionById[];
+}
+
+interface FetchOrderHistoy {
+	outcome: string;
+	qty: number;
+	avgPrice: string;
+	orderedBy: string;
+	orderId: string;
+}
+
+interface FetchOrderHistoyRes {
+	success: boolean;
+	message: string;
+	orders: FetchOrderHistoy[];
 }
 
 const tabs = [
@@ -229,7 +258,54 @@ function DiscussionsTabContent() {
 }
 // History tab
 function HistoryTabContent() {
-	return <Card className="px-4">HistoryTabContent</Card>;
+	const { orders } = useAppStore();
+
+	return (
+		<div>
+			<Card className="max-h-96 overflow-y-auto no-scrollbar mask-[linear-gradient(to_bottom,black_80%,transparent_100%)] pb-10">
+				<CardHeader>
+					<CardTitle>Order history</CardTitle>
+					<CardDescription>
+						Order history of all user's for this market
+					</CardDescription>
+				</CardHeader>
+
+				<CardContent>
+					{orders.length === 0 ? (
+						<Item variant={"outline"}>
+							<ItemMedia>
+								<IconCircleX />
+							</ItemMedia>
+							<ItemContent>
+								<ItemTitle>No order history available</ItemTitle>
+								<ItemDescription>
+									No order history available for this market
+								</ItemDescription>
+							</ItemContent>
+						</Item>
+					) : (
+						<div className="space-y-1">
+							{orders.map((order) => (
+								<Item key={order.orderId} variant={"outline"}>
+									<ItemMedia>
+										<IconBook2 />
+									</ItemMedia>
+									<ItemContent>
+										<ItemTitle>Outcome: {order.outcome}</ItemTitle>
+										<ItemDescription className="flex gap-2">
+											<p>QTY: {(order.qty)}</p>
+											<p>Avg Price: {Math.floor(Number(order.avgPrice) * 100) / 100}</p>
+											<p>Ordered By: {order.orderedBy}</p>
+										</ItemDescription>
+									</ItemContent>
+								</Item>
+							))}
+						</div>
+					)}
+				</CardContent>
+			</Card>
+		</div>
+	);
 }
 // Main card holding all four tab data
 function DataCard({
@@ -299,7 +375,6 @@ function OrderCard({
 	const [selectedButton, setSelectedButton] = useState<null | number>(null);
 	const [selectOutcome, setSelectedOutcome] = useState<null | string>(null);
 	const [quantity, setQuantity] = useState<number>(0);
-	const [currentTab, setCurrentTab] = useState<"buy" | "sell">("buy");
 
 	const {
 		positions,
@@ -310,9 +385,17 @@ function OrderCard({
 		setDefaultTab,
 	} = useAppStore();
 
-	const orderDataValidation = z.object({
+	const buyOrderDataValidation = z.object({
 		marketId: z.string(),
-		orderType: z.enum(["buy", "sell"]),
+		orderType: z.enum(["buy"]),
+		orderQty: z.number().min(1, "Minimum order qty is 1"),
+		selectedOutcome: z.string(),
+	});
+
+	const sellOrderDataValidation = z.object({
+		positionId: z.string(),
+		marketId: z.string(),
+		orderType: z.enum(["sell"]),
 		orderQty: z.number().min(1, "Minimum order qty is 1"),
 		selectedOutcome: z.string(),
 	});
@@ -324,7 +407,7 @@ function OrderCard({
 	}: {
 		orderData: OrderData;
 	}): Promise<void> => {
-		const validateData = orderDataValidation.safeParse(orderData);
+		const validateData = buyOrderDataValidation.safeParse(orderData);
 
 		if (!validateData.success) {
 			const errorMessage = validateData.error.issues[0].message;
@@ -332,7 +415,46 @@ function OrderCard({
 			throw new Error(errorMessage);
 		}
 
-		const res = await fetch(`${BACKEND_URL}/user/order/${currentTab}`, {
+		const res = await fetch(`${BACKEND_URL}/user/order/buy`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			credentials: "include",
+			body: JSON.stringify(validateData.data),
+		});
+
+		const response = await res.json();
+
+		if (!response.success) {
+			toast.error(response.message, {
+				richColors: true,
+				position: "top-right",
+			});
+			throw new Error(response.message);
+		}
+		toast.success(response.message, {
+			richColors: true,
+			position: "top-right",
+		});
+	};
+
+	const placeSellOrder = async ({
+		sellOrderData,
+	}: {
+		sellOrderData: SellOrderData;
+	}): Promise<void> => {
+		const validateData = sellOrderDataValidation.safeParse(sellOrderData);
+
+		console.log(validateData);
+
+		if (!validateData.success) {
+			const errorMessage = validateData.error.issues[0].message;
+			toast.error(errorMessage, { richColors: true, position: "top-right" });
+			throw new Error(errorMessage);
+		}
+
+		const res = await fetch(`${BACKEND_URL}/user/order/sell`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
@@ -363,9 +485,26 @@ function OrderCard({
 					// biome-ignore lint/style/noNonNullAssertion: <market id is required to render this page component>
 					marketId: marketId!,
 					orderQty: quantity,
-					orderType: currentTab,
+					orderType: defaultTab,
+					selectedOutcome:
+						// biome-ignore lint/style/noNonNullAssertion: <selected ouctome will be verified in the mutation func>
+						defaultTab === "buy" ? selectOutcome! : selectedPosition,
+				},
+			}),
+	});
+
+	const sellOrder = useMutation({
+		mutationFn: () =>
+			placeSellOrder({
+				sellOrderData: {
 					// biome-ignore lint/style/noNonNullAssertion: <selected ouctome will be verified in the mutation func>
-					selectedOutcome: selectOutcome!,
+					marketId: marketId!,
+					orderQty: quantity,
+					orderType: "sell",
+					selectedOutcome: selectedPosition,
+					positionId: positions.filter(
+						(position) => position.outcome === selectedPosition,
+					)[0].positionId,
 				},
 			}),
 	});
@@ -383,11 +522,10 @@ function OrderCard({
 			</CardHeader>
 			<CardContent className="space-y-2">
 				<Tabs
-					defaultValue={"buy"}
+					defaultValue={defaultTab}
 					value={defaultTab}
 					onValueChange={(e) => {
 						setDefaultTab({ tab: e as "buy" | "sell" });
-						setCurrentTab(e as "buy" | "sell");
 					}}
 				>
 					<TabsList variant={"line"}>
@@ -401,7 +539,7 @@ function OrderCard({
 						<div className="flex flex-col space-y-1">
 							{outcomes.map((outcome, i) => (
 								<Button
-									className={`${i === selectedButton && "bg-accent-foreground text-accent hover:bg-accent-foreground"}`}
+									className={`${i === selectedButton && "bg-accent-foreground text-accent 			hover:bg-accent-foreground"}`}
 									key={outcome.outcomeTitle}
 									variant={i === selectedButton ? "secondary" : "outline"}
 									onClick={() => {
@@ -448,6 +586,7 @@ function OrderCard({
 									className={`${selectedPosition === position.outcome && "bg-foreground text-background"} hover:cursor-pointer`}
 									onClick={() => {
 										setSelectedPosition({ selectedPosition: position.outcome });
+										setSelectedOutcome(position.outcome);
 									}}
 								>
 									<ItemContent>
@@ -496,7 +635,7 @@ function OrderCard({
 								variant={"destructive"}
 								disabled={quantity === 0}
 								onClick={() => {
-									mutate();
+									sellOrder.mutate();
 								}}
 							>
 								Sell
@@ -513,8 +652,13 @@ export default function MarketById() {
 	const marketId = useParams().id;
 
 	const { sendMessage } = useWebsocket();
-	const { setMarketById, marketById, setPosition, setLatestPrice } =
-		useAppStore();
+	const {
+		setMarketById,
+		marketById,
+		setPosition,
+		setLatestPrice,
+		setOrderHistory,
+	} = useAppStore();
 	const fetchMarketById = async (): Promise<FetchMarketByIdRes> => {
 		const res = await fetch(
 			`${BACKEND_URL}/market/get-market-by-id?marketId=${marketId}`,
@@ -598,6 +742,30 @@ export default function MarketById() {
 		queryFn: fetchLatestPrice,
 	});
 
+	const fetchOrders = async () => {
+		try {
+			const res = await fetch(
+				`${BACKEND_URL}/order/get-order-history?marketId=${marketId}`,
+			);
+
+			const response = await res.json();
+			const data = response as FetchOrderHistoyRes;
+
+			if (data.success) {
+				setOrderHistory({ orders: data.orders });
+			} else {
+				setOrderHistory({ orders: [] });
+			}
+		} catch (error) {
+			console.log(error);
+		}
+	};
+
+	const fetchOrdersQuery = useQuery({
+		queryKey: ["fetchOrders"],
+		queryFn: fetchOrders,
+	});
+
 	if (isLoading) {
 		return (
 			<div className="flex justify-center items-center h-[80vh]">
@@ -615,6 +783,14 @@ export default function MarketById() {
 	}
 
 	if (fetchLatestPrices.isLoading) {
+		return (
+			<div className="flex justify-center items-center h-[80vh]">
+				<IconLoader2 size={25} className="animate-spin" />
+			</div>
+		);
+	}
+
+	if (fetchOrdersQuery.isLoading) {
 		return (
 			<div className="flex justify-center items-center h-[80vh]">
 				<IconLoader2 size={25} className="animate-spin" />
