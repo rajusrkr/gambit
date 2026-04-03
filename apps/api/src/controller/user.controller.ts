@@ -1,4 +1,4 @@
-import { db, order, position } from "@repo/db";
+import { db, market, order, position } from "@repo/db";
 import { and, desc, eq } from "drizzle-orm";
 import type { Request, Response } from "express";
 
@@ -107,5 +107,64 @@ export const fetchLatestPrice = async (req: Request, res: Response) => {
 			message:
 				error instanceof Error ? `${error.message}` : "Internal server error",
 		});
+	}
+};
+
+// Get price history
+export const getPriceHistory = async (req: Request, res: Response) => {
+	const params = req.query;
+
+	const marketId = params.marketId;
+
+	if (!marketId) {
+		return res.status(400).json({
+			success: false,
+			message: "Market is require to fetch price history",
+		});
+	}
+
+	// 	export interface ChartData {
+	// 	marketId: string;
+	// 	marketTitle: string;
+	// 	priceData: {
+	// 		outcomeTitle: string;
+	// 		color: string;
+	// 		prices: {
+	// 			time: string;
+	// 			value: number;
+	// 		}[];
+	// 	}[];
+	// }
+
+	try {
+		const getPriceHistory = await db
+			.select({
+				prices: order.updatedPrices,
+				time: order.createdAt,
+			})
+			.from(order)
+			.where(eq(order.orderTakenIn, String(marketId)))
+			.innerJoin(market, eq(market.id, String(marketId)));
+
+		if (getPriceHistory.length === 0) {
+			return res
+				.status(200)
+				.json({
+					success: false,
+					message: "There is no price history for this market",
+				});
+		}
+
+		return res
+			.status(200)
+			.json({
+				success: true,
+				message: "Price history fetched for the market",
+				priceHistory: getPriceHistory,
+			});
+	} catch (error) {
+		const errorMessage =
+			error instanceof Error ? error.message : "Internal server error";
+		return res.status(500).json({ success: false, message: errorMessage });
 	}
 };

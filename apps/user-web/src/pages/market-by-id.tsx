@@ -5,10 +5,13 @@ import {
 	IconSend,
 } from "@tabler/icons-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import type { Time } from "lightweight-charts";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import z from "zod";
+import type { ChartData } from "@/components/MarketPriceChart";
+import MarketPriceChart from "@/components/MarketPriceChart";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,13 +22,6 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useWebsocket } from "@/components/web-socket-provider";
-import { calculatePnl } from "@/lib/calculate-pnl";
-import { BACKEND_URL } from "@/lib/utils";
-import { useAppStore } from "@/lib/zustand-store";
 import {
 	Item,
 	ItemContent,
@@ -33,7 +29,15 @@ import {
 	ItemMedia,
 	ItemTitle,
 } from "@/components/ui/item";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { useWebsocket } from "@/components/web-socket-provider";
+import { calculatePnl } from "@/lib/calculate-pnl";
+import { BACKEND_URL } from "@/lib/utils";
+import { useAppStore } from "@/lib/zustand-store";
+import { useTheme } from "@/components/theme-provider";
 
 interface MarketById {
 	id: string;
@@ -121,6 +125,36 @@ const tabs = [
 	{ value: "discussions", title: "Discussions" },
 	{ value: "history", title: "History" },
 ];
+const lineColors = {
+	dark: [
+		"#ef4444",
+		"#f97316",
+		"#84cc16",
+		"#3b82f6",
+		"#64748b",
+		"#581c87",
+		"#831843",
+		"#365314",
+	],
+	light: [
+		"#dc2626",
+		"#ea580c",
+		"#65a30d",
+		"#2563eb",
+		"#475569",
+		"#3b0764",
+		"#500724",
+		"#1a2e05",
+	],
+};
+interface FetchedPriceData {
+	prices: {
+		price: string;
+		title: string;
+		volume: number;
+	}[];
+	time: string;
+}
 
 // ==================================
 // Sub components
@@ -151,7 +185,92 @@ function MarketMetaData({
 }
 // Chart tab
 function ChartTabContent() {
-	return <div>chart tab content</div>;
+	const { theme } = useTheme();
+
+	const marketId = useParams().id;
+
+	const fetchPriceHistory = async (): Promise<ChartData[]> => {
+		const res = await fetch(
+			`${BACKEND_URL}/user/price/history?marketId=${marketId}`,
+			{
+				credentials: "include",
+			},
+		);
+
+		const data = await res.json();
+		const priceHistory = data.priceHistory as FetchedPriceData[];
+
+		const groupedData = priceHistory.reduce(
+			(
+				acc: Record<
+					string,
+					{
+						outcomeTitle: string;
+						color: string;
+						prices: { value: number; time: Time }[];
+					}
+				>,
+				item,
+			) => {
+				item.prices.forEach((price, i) => {
+					if (!acc[price.title]) {
+						acc[price.title] = {
+							outcomeTitle: price.title,
+							color:
+								theme === "dark" ? lineColors.dark[i] : lineColors.light[i],
+							prices: [],
+						};
+					}
+					acc[price.title].prices.push({
+						value: Math.floor(Number(price.price) * 100) / 100,
+						time: Math.floor(new Date(item.time).getTime() / 1000) as Time,
+					});
+				});
+				return acc;
+			},
+			{},
+		);
+
+		const chartData = Object.values(groupedData);
+
+		return chartData;
+	};
+
+	const { data, isLoading } = useQuery({
+		queryKey: ["fetch-price_history"],
+		queryFn: fetchPriceHistory,
+		staleTime: 0,
+		gcTime: 0,
+		refetchOnMount: "always",
+	});
+
+	if (isLoading) {
+		return (
+			<div className="h-96 flex justify-center items-center">
+				<span className="animate-spin">
+					<IconLoader2 />
+				</span>
+			</div>
+		);
+	}
+
+	if (!data) {
+		throw new Error("Unable to fetch chart price data");
+	}
+
+	return (
+		<Card>
+			<CardHeader>
+				<CardTitle>Chart</CardTitle>
+				<CardDescription>
+					Showing all prices in a single chart. Take mouse on chart to see data
+				</CardDescription>
+			</CardHeader>
+			<CardContent>
+				<MarketPriceChart chartData={data} />
+			</CardContent>
+		</Card>
+	);
 }
 // Overview tab
 function OverviewTabContent({
@@ -169,93 +288,96 @@ function OverviewTabContent({
 
 	return (
 		<Card className="px-4">
-			<div>
-				<p className="font-semibold text-xl">Betting options</p>
-			</div>
+			<CardHeader>
+				<CardTitle>Betting options</CardTitle>
+				<CardDescription>All betting options listed below</CardDescription>
+			</CardHeader>
 
-			<div>
-				{outcomes.map((outcome) => (
-					<div key={outcome.outcomeTitle} className="mb-4">
-						<p className="text-lg font-semibold mb-1 flex items-center gap-4">
-							<span>{outcome.outcomeTitle}</span>
-							<span className="text-gray-500 space-x-2">
-								<Badge variant={"outline"} className="select-none">
-									Volume: {outcome.volume}
-								</Badge>
-								{positions.find(
-									(position) => position.outcome === outcome.outcomeTitle,
-								) && (
-									<Badge className="select-none">
-										<span className="font-semibold">Position</span>
+			<CardContent>
+				<div>
+					{outcomes.map((outcome) => (
+						<div key={outcome.outcomeTitle} className="mb-4">
+							<p className="text-lg font-semibold mb-1 flex items-center gap-4">
+								<span>{outcome.outcomeTitle}</span>
+								<span className="text-gray-500 space-x-2">
+									<Badge variant={"outline"} className="select-none">
+										Volume: {outcome.volume}
 									</Badge>
-								)}
+									{positions.find(
+										(position) => position.outcome === outcome.outcomeTitle,
+									) && (
+										<Badge className="select-none">
+											<span className="font-semibold">Position</span>
+										</Badge>
+									)}
 
-								{positions.find(
-									(position) => position.outcome === outcome.outcomeTitle,
-								) && (
-									<Badge
-										onClick={() => {
-											setDefaultTab({ tab: "sell" });
-											setSelectedPosition({
-												selectedPosition: outcome.outcomeTitle,
-											});
-										}}
-										className={`${
-											calculatePnl({
-												// biome-ignore lint/style/noNonNullAssertion: <market id is mandatory to render this page component>
-												marketId: marketId!,
-												latestPrices: latestPrices,
-												outcomeTitle: outcome.outcomeTitle,
-												positions: positions,
-											}) > 0 && "bg-green-700"
-										} select-none hover:cursor-pointer`}
-										variant={
-											calculatePnl({
-												// biome-ignore lint/style/noNonNullAssertion: <market id is mandatory to render this page component>
-												marketId: marketId!,
-												latestPrices: latestPrices,
-												outcomeTitle: outcome.outcomeTitle,
-												positions: positions,
-											}) < 0
-												? "destructive"
-												: "default"
-										}
-									>
-										<span className="font-semibold">
-											PNL:{" "}
-											{String(
+									{positions.find(
+										(position) => position.outcome === outcome.outcomeTitle,
+									) && (
+										<Badge
+											onClick={() => {
+												setDefaultTab({ tab: "sell" });
+												setSelectedPosition({
+													selectedPosition: outcome.outcomeTitle,
+												});
+											}}
+											className={`${
 												calculatePnl({
 													// biome-ignore lint/style/noNonNullAssertion: <market id is mandatory to render this page component>
 													marketId: marketId!,
 													latestPrices: latestPrices,
 													outcomeTitle: outcome.outcomeTitle,
 													positions: positions,
-												}),
-											)}
-										</span>
-									</Badge>
-								)}
-							</span>
-						</p>
-
-						<div className="flex items-center gap-3">
-							<div className="flex-1">
-								<Progress
-									value={Number(Number(outcome.price).toFixed(2)) * 100}
-								/>
-							</div>
-
-							<div className="flex gap-2 whitespace-nowrap text-sm font-medium">
-								<span>
-									<Badge variant={"outline"}>
-										{Number(Math.floor(Number(outcome.price) * 100))}%
-									</Badge>
+												}) > 0 && "bg-green-700"
+											} select-none hover:cursor-pointer`}
+											variant={
+												calculatePnl({
+													// biome-ignore lint/style/noNonNullAssertion: <market id is mandatory to render this page component>
+													marketId: marketId!,
+													latestPrices: latestPrices,
+													outcomeTitle: outcome.outcomeTitle,
+													positions: positions,
+												}) < 0
+													? "destructive"
+													: "default"
+											}
+										>
+											<span className="font-semibold">
+												PNL:{" "}
+												{String(
+													calculatePnl({
+														// biome-ignore lint/style/noNonNullAssertion: <market id is mandatory to render this page component>
+														marketId: marketId!,
+														latestPrices: latestPrices,
+														outcomeTitle: outcome.outcomeTitle,
+														positions: positions,
+													}),
+												)}
+											</span>
+										</Badge>
+									)}
 								</span>
+							</p>
+
+							<div className="flex items-center gap-3">
+								<div className="flex-1">
+									<Progress
+										value={Number(Number(outcome.price).toFixed(2)) * 100}
+									/>
+								</div>
+
+								<div className="flex gap-2 whitespace-nowrap text-sm font-medium">
+									<span>
+										<Badge variant={"outline"}>
+											{Number(Math.floor(Number(outcome.price) * 100))}%
+										</Badge>
+									</span>
+								</div>
 							</div>
 						</div>
-					</div>
-				))}
-			</div>
+					))}
+				</div>
+			</CardContent>
 		</Card>
 	);
 }
@@ -428,7 +550,7 @@ function DataCard({
 }) {
 	return (
 		<Card className="px-4 max-w-4xl">
-			<Tabs defaultValue="discussions">
+			<Tabs defaultValue="chart">
 				<TabsList variant={"line"}>
 					{tabs.map((tab) => (
 						<TabsTrigger value={tab.value} key={tab.title}>

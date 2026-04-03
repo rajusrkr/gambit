@@ -13,15 +13,11 @@ import { createChart, LineSeries } from "lightweight-charts";
 import { useEffect, useRef, useState } from "react";
 
 export interface ChartData {
-	marketId: string;
-	marketTitle: string;
-	priceData: {
-		outcomeTitle: string;
-		color: string;
-		prices: {
-			time: string;
-			value: number;
-		}[];
+	outcomeTitle: string;
+	color: string;
+	prices: {
+		value: number;
+		time: Time;
 	}[];
 }
 
@@ -48,7 +44,7 @@ interface SeriesList {
 export default function MarketPriceChart({
 	chartData,
 }: {
-	chartData: ChartData;
+	chartData: ChartData[];
 }) {
 	const chartContainerRef = useRef<HTMLDivElement>(null);
 	const [tooltip, setTooltip] = useState<TooltipState>({
@@ -66,7 +62,7 @@ export default function MarketPriceChart({
 			layout: {
 				textColor: "white",
 				background: {
-					color: "#15191d",
+					color: "#171717",
 				},
 			},
 			grid: {
@@ -77,7 +73,8 @@ export default function MarketPriceChart({
 
 		const seriesList: SeriesList[] = [];
 
-		chartData.priceData.forEach((price) => {
+
+		chartData.forEach((price) => {
 			const series = chart.addSeries(LineSeries, { color: price.color });
 			series.setData(price.prices);
 			seriesList.push({
@@ -141,7 +138,7 @@ export default function MarketPriceChart({
 					}}
 				>
 					<div style={{ fontWeight: "bold", marginBottom: "4px" }}>
-						{tooltip.time}
+						{new Date(Number(tooltip.time) * 1000).toString()}
 					</div>
 
 					{tooltip.value.map((item) => (
