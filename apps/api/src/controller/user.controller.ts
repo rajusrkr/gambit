@@ -1,5 +1,5 @@
 import { db, market, order, position } from "@repo/db";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import type { Request, Response } from "express";
 
 // Fetching positions by market id
@@ -63,17 +63,72 @@ export const fetchPositions = async (req: Request, res: Response) => {
 	}
 };
 
+// Fethc all position for a user
+export const fetchAllPosition = async (req: Request, res: Response) => {
+	// @ts-expect-error, getting user id
+	const getUserId = req.user.id;
+
+	if (!getUserId) {
+		return res.status(400).json({
+			success: false,
+			message: "User id is required to fetch positions",
+		});
+	}
+
+	try {
+		const getPositions = await db
+			.select({
+				positionId: position.id,
+				marketTitle: market.title,
+				outcomeTitle: position.positionTakenFor,
+				qty: position.availableQty,
+				avgPrice: position.buyAvgPrice,
+				marketId: market.id,
+			})
+			.from(position)
+			.where(eq(position.positionTakenBy, getUserId))
+			.innerJoin(market, eq(market.id, position.positionTakenIn));
+
+		if (!getPositions || getPositions.length === 0) {
+			return res.status(200).json({
+				success: true,
+				message: "No positon availanble",
+				positions: [],
+			});
+		}
+
+		return res.status(200).json({
+			success: true,
+			message: "Positions fetched successfully",
+			positions: getPositions,
+		});
+	} catch (error) {
+		const errorMessage =
+			error instanceof Error ? error.message : "Internal server error";
+
+		return res.status(500).json({ success: false, message: errorMessage });
+	}
+};
+
 // Fetch latest price for a market
 export const fetchLatestPrice = async (req: Request, res: Response) => {
 	const urlParams = req.query;
-	const marketId = String(urlParams.marketId);
+	const marketIds = urlParams.id;
 
-	if (!marketId) {
-		return res.status(200).json({
+	let marketIdsArr: string[] | any = [];
+
+	if (typeof marketIds === "string") {
+		marketIdsArr.push(marketIds);
+	} else if (typeof marketIds === "object") {
+		marketIdsArr = marketIds;
+	} else {
+		return res.status(400).json({
 			success: false,
-			message: "Market id required to fetch latest prices",
+			message: "Market id(s) required to fetch latest prices",
 		});
 	}
+
+	console.log(marketIds);
 
 	try {
 		const getLatestPrice = await db
@@ -82,9 +137,8 @@ export const fetchLatestPrice = async (req: Request, res: Response) => {
 				prices: order.updatedPrices,
 			})
 			.from(order)
-			.where(eq(order.orderTakenIn, marketId))
-			.orderBy(desc(order.createdAt))
-			.limit(1);
+			.where(inArray(order.orderTakenIn, marketIdsArr))
+			.orderBy(desc(order.createdAt));
 
 		if (!getLatestPrice || getLatestPrice.length === 0) {
 			return res.status(400).json({
@@ -93,6 +147,8 @@ export const fetchLatestPrice = async (req: Request, res: Response) => {
 				latestPrice: null,
 			});
 		}
+
+		console.log(getLatestPrice);
 
 		return res.status(200).json({
 			success: true,
@@ -147,21 +203,17 @@ export const getPriceHistory = async (req: Request, res: Response) => {
 			.innerJoin(market, eq(market.id, String(marketId)));
 
 		if (getPriceHistory.length === 0) {
-			return res
-				.status(200)
-				.json({
-					success: false,
-					message: "There is no price history for this market",
-				});
+			return res.status(200).json({
+				success: false,
+				message: "There is no price history for this market",
+			});
 		}
 
-		return res
-			.status(200)
-			.json({
-				success: true,
-				message: "Price history fetched for the market",
-				priceHistory: getPriceHistory,
-			});
+		return res.status(200).json({
+			success: true,
+			message: "Price history fetched for the market",
+			priceHistory: getPriceHistory,
+		});
 	} catch (error) {
 		const errorMessage =
 			error instanceof Error ? error.message : "Internal server error";

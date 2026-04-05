@@ -82,6 +82,7 @@ interface PositionById {
 	avgPrice: string;
 	positionQty: number;
 	tradeCost: string;
+
 }
 
 interface LatestPrice {
@@ -947,8 +948,12 @@ export default function MarketById() {
 	});
 
 	const fetchLatestPrice = async () => {
+		const params = new URLSearchParams();
+		// biome-ignore lint/style/noNonNullAssertion: <market id is mandatory to render this page>
+		params.append("id", marketId!);
+
 		const res = await fetch(
-			`${BACKEND_URL}/user/price/latest-prices?marketId=${marketId}`,
+			`${BACKEND_URL}/user/price/latest-prices?${params}`,
 			{
 				method: "GET",
 				headers: {

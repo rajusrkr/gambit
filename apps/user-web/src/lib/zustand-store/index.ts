@@ -62,6 +62,15 @@ interface FetchOrderHistoy {
 	orderId: string;
 }
 
+interface AllPositions {
+	positionId: string
+	marketTitle: string;
+	outcomeTitle: string;
+	qty: number;
+	avgPrice: string;
+	marketId: string
+}
+
 interface AppStates {
 	isLoading: boolean;
 	isError: boolean;
@@ -88,6 +97,7 @@ interface AppStates {
 	defaultTab: tabs;
 	selectedPosition: string;
 	orders: FetchOrderHistoy[];
+	allPositions: AllPositions[];
 
 	// Functions
 	setMarkets: ({ markets }: { markets: Market[] }) => void;
@@ -102,6 +112,7 @@ interface AppStates {
 	}) => void;
 	setOrderHistory: ({ orders }: { orders: FetchOrderHistoy[] }) => void;
 	setDiscussion: ({ discussion }: { discussion: Discussions }) => void;
+	setAllPositins: ({ allPositions }: { allPositions: AllPositions[] }) => void;
 }
 
 const useAppStore = create(
@@ -152,6 +163,7 @@ const useAppStore = create(
 			positions: [],
 			defaultTab: "buy",
 			selectedPosition: "",
+			allPositions: [],
 			setMarkets: ({ markets }) => {
 				console.log("setting data");
 				set((prev) => {
@@ -192,6 +204,9 @@ const useAppStore = create(
 				set((prev) => ({
 					discussions: [...prev.discussions, discussion],
 				}));
+			},
+			setAllPositins: ({ allPositions }) => {
+				set({ allPositions });
 			},
 		}),
 		{ name: "app-store" },
