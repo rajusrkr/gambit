@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import z from "zod";
 import type { ChartData } from "@/components/MarketPriceChart";
 import MarketPriceChart from "@/components/MarketPriceChart";
+import { useTheme } from "@/components/theme-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,7 +38,6 @@ import { useWebsocket } from "@/components/web-socket-provider";
 import { calculatePnl } from "@/lib/calculate-pnl";
 import { BACKEND_URL } from "@/lib/utils";
 import { useAppStore } from "@/lib/zustand-store";
-import { useTheme } from "@/components/theme-provider";
 
 interface MarketById {
 	id: string;
@@ -82,7 +82,6 @@ interface PositionById {
 	avgPrice: string;
 	positionQty: number;
 	tradeCost: string;
-
 }
 
 interface LatestPrice {
@@ -880,6 +879,9 @@ function OrderCard({
 	);
 }
 
+/**
+ * Market by id page. This page will render markets as per the market id. Here we have so many things. Like: charts, overview of outcomes, duscussions and order history. A user can place a buy order from this page and also exit from that position at the same time without leaving the page.
+ */
 export default function MarketById() {
 	const marketId = useParams().id;
 
@@ -891,6 +893,7 @@ export default function MarketById() {
 		setLatestPrice,
 		setOrderHistory,
 	} = useAppStore();
+
 	const fetchMarketById = async (): Promise<FetchMarketByIdRes> => {
 		const res = await fetch(
 			`${BACKEND_URL}/market/get-market-by-id?marketId=${marketId}`,

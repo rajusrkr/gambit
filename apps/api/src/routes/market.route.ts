@@ -7,30 +7,16 @@ import {
 } from "express";
 import {
 	createMarket,
+	deleteMarket,
 	fetchFootball,
-	getMarkets,
-	marketById,
 } from "../controller/market.controller";
 import { adminAuth } from "../lib/better-auth";
+import { authMiddleWareAdmin } from "../lib/helpers/middlewares/admin-auth";
 
 const router = Router();
 
-router.get("/fetch-football", authMiddleWare, fetchFootball);
-router.post("/create-market", authMiddleWare, createMarket);
-router.get("/get-market", getMarkets);
-router.get("/get-market-by-id", marketById);
-
-async function authMiddleWare(req: Request, res: Response, next: NextFunction) {
-	const session = await adminAuth.api.getSession({
-		headers: fromNodeHeaders(req.headers),
-	});
-	if (session) {
-		// @ts-expect-error, attach the user
-		req.user = session.user;
-		next();
-	} else {
-		res.status(401).send("Unauthorized");
-	}
-}
+router.get("/fetch-football", authMiddleWareAdmin, fetchFootball);
+router.post("/create-market", authMiddleWareAdmin, createMarket);
+router.delete("/delete", authMiddleWareAdmin, deleteMarket);
 
 export default router;

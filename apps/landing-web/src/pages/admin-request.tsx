@@ -1,7 +1,3 @@
 export default function AdminRequest() {
-    return (
-        <div>
-            admin request
-        </div>
-    )
+	return <div>admin request</div>;
 }

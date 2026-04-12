@@ -1,34 +1,34 @@
 {
-  "name": "api",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "build": "tsc -b",
-    "dev": "node dist/index.js"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "dependencies": {
-    "@repo/db": "*",
-    "better-auth": "^1.4.18",
-    "bullmq": "^5.69.3",
-    "cors": "^2.8.6",
-    "decimal.js": "^10.6.0",
-    "dotenv": "^17.2.3",
-    "drizzle-orm": "^0.45.1",
-    "express": "^5.2.1",
-    "ioredis": "^5.9.3",
-    "jsonwebtoken": "^9.0.3",
-    "nodemailer": "^7.0.13",
-    "zod": "^4.3.6"
-  },
-  "devDependencies": {
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/nodemailer": "^7.0.9"
-  }
+	"name": "api",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"build": "tsc -b",
+		"dev": "node dist/index.js"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"type": "commonjs",
+	"dependencies": {
+		"@repo/db": "*",
+		"better-auth": "^1.4.18",
+		"bullmq": "^5.69.3",
+		"cors": "^2.8.6",
+		"decimal.js": "^10.6.0",
+		"dotenv": "^17.2.3",
+		"drizzle-orm": "^0.45.1",
+		"express": "^5.2.1",
+		"ioredis": "^5.9.3",
+		"jsonwebtoken": "^9.0.3",
+		"nodemailer": "^7.0.13",
+		"zod": "^4.3.6"
+	},
+	"devDependencies": {
+		"@types/cors": "^2.8.19",
+		"@types/express": "^5.0.6",
+		"@types/jsonwebtoken": "^9.0.10",
+		"@types/nodemailer": "^7.0.9"
+	}
 }

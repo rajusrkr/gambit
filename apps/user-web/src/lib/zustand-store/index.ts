@@ -63,12 +63,12 @@ interface FetchOrderHistoy {
 }
 
 interface AllPositions {
-	positionId: string
+	positionId: string;
 	marketTitle: string;
 	outcomeTitle: string;
 	qty: number;
 	avgPrice: string;
-	marketId: string
+	marketId: string;
 }
 
 interface AppStates {

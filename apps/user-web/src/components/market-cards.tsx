@@ -1,7 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
+import {
+	IconCircleDashedX,
+	IconCircleX,
+	IconLoader2,
+} from "@tabler/icons-react";
 import { Link } from "react-router-dom";
-import { BACKEND_URL } from "@/lib/utils";
-import { useAppStore } from "@/lib/zustand-store";
+import { toast } from "sonner";
+import { useMarkets } from "@/hooks/fetch/useMarket";
 import { Button } from "./ui/button";
 import {
 	Card,
@@ -10,75 +14,70 @@ import {
 	CardHeader,
 	CardTitle,
 } from "./ui/card";
-import { useWebsocket } from "./web-socket-provider";
-import { IconCircleX } from "@tabler/icons-react";
+import {
+	Item,
+	ItemContent,
+	ItemDescription,
+	ItemMedia,
+	ItemTitle,
+} from "./ui/item";
 
-interface Market {
-	id: string;
-	title: string;
-	outcomes: {
-		title: string;
-		price: string;
-		volume: number;
-	}[];
-	marketStatus: string;
-	marketCategory: string;
-}
-
-interface MarketFetchRes {
-	success: boolean;
-	message: string;
-	markets: Market[];
-}
-
+/**
+ * Market cards component, markets will be fetched here and render those market data in cards format using shadcn card compoent.
+ * This componet is exclusive to market.tsx.
+ */
 export default function MarketCards() {
-	const { sendMessage } = useWebsocket();
+	const {
+		marketLatestPriceQueryError,
+		marketQueryError,
+		isPending,
+		market,
+		latestPrice,
+	} = useMarkets();
 
-	const { setMarkets, markets } = useAppStore();
-
-	const fetchMarket = async (): Promise<MarketFetchRes> => {
-		const res = await fetch(`${BACKEND_URL}/market/get-market`);
-		const response = await res.json();
-		if (!response.success) {
-			setMarkets({ markets: [] });
-			throw new Error(response.message.toString());
-		}
-
-		const data = response as MarketFetchRes;
-		const marketIds: string[] = [];
-		data.markets.forEach((market) => {
-			marketIds.push(market.id);
-		});
-
-		sendMessage({
-			type: "TICKER_UPDATE",
-			message: "Sub to ticks",
-			payload: { pageRef: "home", roomsToSub: marketIds },
-		});
-
-		setMarkets({ markets: data.markets });
-		return data;
-	};
-
-	const { isLoading } = useQuery({
-		queryKey: ["markets"],
-		queryFn: fetchMarket,
-	});
-
-	if (isLoading) {
+	if (isPending) {
 		return (
-			<div className="flex justify-center items-center h-screen text-gray-600">
-				Loading...123
+			<div className="flex justify-center items-center h-[80vh]">
+				<IconLoader2 className="animate-spin" />
+			</div>
+		);
+	}
+
+	if (marketQueryError) {
+		return <div>{marketQueryError.message}</div>;
+	}
+
+	if (marketLatestPriceQueryError) {
+		toast.error(marketLatestPriceQueryError.message, {
+			richColors: true,
+			position: "top-right",
+		});
+	}
+	if (!market || market.length === 0) {
+		return (
+			<div className="flex justify-center items-center h-[80vh] max-w-96 mx-auto">
+				<Item variant="outline">
+					<ItemMedia variant="icon">
+						<IconCircleDashedX />
+					</ItemMedia>
+					<ItemContent>
+						<ItemTitle>No markets available</ItemTitle>
+						<ItemDescription>
+							There are no markets available to trade at the moment, please try
+							again later.
+						</ItemDescription>
+					</ItemContent>
+				</Item>
 			</div>
 		);
 	}
 
 	return (
 		<>
-			{markets.length === 0 ? (
+			{market.length === 0 ? (
 				<div className="flex justify-center items-center h-[80vh]">
 					<div className="flex justify-center items-center flex-col">
-						<IconCircleX className="text-gray-500"/>
+						<IconCircleX className="text-gray-500" />
 
 						<p className="text-2xl font-semibold text-gray-500">
 							No markets avaialble to show
@@ -87,44 +86,60 @@ export default function MarketCards() {
 				</div>
 			) : (
 				<div className="grid md:grid-cols-3 grid-cols-1 gap-4">
-					{markets.map((market) => (
+					{market.map((m) => (
 						<Card
-							key={market.id}
+							key={m.marketId}
 							className="dark:bg-[#1e2428] relative dark:hover:bg-[#242b32] transition-all"
 						>
 							<CardHeader className="h-10">
 								<CardTitle className="text-xl font-bold">
-									<Link to={`/market/${market.id}`}>
+									<Link to={`/market/${m.marketId}`}>
 										<span className="hover:underline underline-offset-1">
-											{market.title}
+											{m.marketTitle}
 										</span>
 									</Link>
 								</CardTitle>
 							</CardHeader>
 
 							<CardContent className="mb-2">
-								{market.outcomes.length === 2 && (
+								{m.outcomes.length === 2 && (
 									<div className="w-full flex gap-1">
-										{market.outcomes.map((outcome) => (
+										{m.outcomes.map((outcome) => (
 											<Button className="flex-1 capitalize" key={outcome.title}>
-												{outcome.title}
+												{outcome.title} -{" "}
+												{Math.floor(
+													Number(
+														latestPrice?.[m.marketId]?.prices.find(
+															(price) => price.title === outcome.title,
+														)?.price,
+													) * 100,
+												)}
 											</Button>
 										))}
 									</div>
 								)}
 
-								{market.outcomes.length > 2 && market.outcomes.length < 6 && (
+								{m.outcomes.length > 2 && m.outcomes.length < 6 && (
 									<div className="w-full grid grid-cols-3 gap-1 pb-4">
-										{market.outcomes.map((outcome) => (
-											<Button key={outcome.title}>{outcome.title}</Button>
+										{m.outcomes.map((outcome) => (
+											<Button key={outcome.title}>
+												{outcome.title}-{" "}
+												{Math.floor(
+													Number(
+														latestPrice?.[m.marketId]?.prices.find(
+															(price) => price.title === outcome.title,
+														)?.price,
+													) * 100,
+												)}
+											</Button>
 										))}
 									</div>
 								)}
 
-								{market.outcomes.length > 5 && (
+								{m.outcomes.length > 5 && (
 									<div className="w-full grid grid-cols-3 gap-1 pb-4">
 										{[
-											...market.outcomes.slice(0, 5),
+											...m.outcomes.slice(0, 5),
 											{ price: "0", volume: 0, title: "See more" },
 										].map((outcome) => (
 											<Button key={outcome.title}>{outcome.title}</Button>
@@ -140,7 +155,7 @@ export default function MarketCards() {
 										<span className="relative inline-flex size-3 rounded-full bg-green-500"></span>
 									</span>
 									<span className="capitalize">
-										{market.marketStatus.replaceAll("_", " ")}
+										{m.marketStatus.replaceAll("_", " ")}
 									</span>
 								</div>
 							</CardFooter>

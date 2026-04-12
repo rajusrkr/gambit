@@ -7,4 +7,4 @@ const newOrderPausedQueue = new Queue("market_pause", {
 });
 const closeMarketQueue = new Queue("market_close", { connection: RedisClient });
 
-export { startMarketQueue, closeMarketQueue, newOrderPausedQueue };
+export { closeMarketQueue, newOrderPausedQueue, startMarketQueue };

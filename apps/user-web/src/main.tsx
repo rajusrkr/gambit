@@ -2,16 +2,16 @@
 import { createRoot } from "react-dom/client";
 
 import "./index.css";
+import { BrowserRouter } from "react-router-dom";
 import App from "./App.tsx";
 import Providers from "./providers.tsx";
-import { BrowserRouter } from "react-router-dom";
 
 createRoot(document.getElementById("root")!).render(
-  // <StrictMode>
-  <BrowserRouter>
-    <Providers>
-      <App />
-    </Providers>
-  </BrowserRouter>,
-  // </StrictMode>,
+	// <StrictMode>
+	<BrowserRouter>
+		<Providers>
+			<App />
+		</Providers>
+	</BrowserRouter>,
+	// </StrictMode>,
 );

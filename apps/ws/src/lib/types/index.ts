@@ -1,10 +1,10 @@
-import { WebSocket } from "ws";
+import type { WebSocket } from "ws";
 
 interface ExtendedSocket extends WebSocket {
-  isAlive: boolean;
+	isAlive: boolean;
 }
 type PageRef = Map<ExtendedSocket, string>;
 type Rooms = Map<string, Set<ExtendedSocket>>;
 type Users = Map<ExtendedSocket, Set<string>>;
 
-export { ExtendedSocket, PageRef, Rooms, Users };
+export type { ExtendedSocket, PageRef, Rooms, Users };

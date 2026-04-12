@@ -28,7 +28,13 @@ app.listen(3333, () => {
 });
 
 import marketRouter from "./routes/market.route";
+
 app.use("/api/v0/market", marketRouter);
 
 import userRouter from "./routes/user.route";
+
 app.use("/api/v0", userRouter);
+
+import dataRouter from "./routes/data.route";
+
+app.use("/api/v0/market", dataRouter);

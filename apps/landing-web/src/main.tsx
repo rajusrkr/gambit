@@ -5,12 +5,11 @@ import App from "./App.tsx";
 import { ThemeProvider } from "./components/theme-provider.tsx";
 import { Toaster } from "./components/ui/sonner.tsx";
 
-
 createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <ThemeProvider defaultTheme="dark" storageKey="gambit-landing-ui-theme">
-      <App  />
-      <Toaster />
-    </ThemeProvider>
-  </StrictMode>,
+	<StrictMode>
+		<ThemeProvider defaultTheme="dark" storageKey="gambit-landing-ui-theme">
+			<App />
+			<Toaster />
+		</ThemeProvider>
+	</StrictMode>,
 );

@@ -73,7 +73,6 @@ export default function MarketPriceChart({
 
 		const seriesList: SeriesList[] = [];
 
-
 		chartData.forEach((price) => {
 			const series = chart.addSeries(LineSeries, { color: price.color });
 			series.setData(price.prices);

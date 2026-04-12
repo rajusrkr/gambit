@@ -12,7 +12,10 @@ import {
 import { market } from "./market";
 import { user } from "./user";
 
-export const positionStatus: PgEnum<["open", "settled"]> = pgEnum("position_status", ["open", "settled"]);
+export const positionStatus: PgEnum<["open", "settled"]> = pgEnum(
+	"position_status",
+	["open", "settled"],
+);
 
 export const position = pgTable(
 	"position",

@@ -1,15 +1,15 @@
 import RedisClient from "./client/redis-client";
-import {
-  closeMarketQueue,
-  startMarketQueue,
-  newOrderPausedQueue,
-} from "./queue/market.queue";
 import { Producer } from "./pub/index";
+import {
+	closeMarketQueue,
+	newOrderPausedQueue,
+	startMarketQueue,
+} from "./queue/market.queue";
 
 export {
-  RedisClient,
-  closeMarketQueue,
-  startMarketQueue,
-  Producer,
-  newOrderPausedQueue,
+	closeMarketQueue,
+	newOrderPausedQueue,
+	Producer,
+	RedisClient,
+	startMarketQueue,
 };

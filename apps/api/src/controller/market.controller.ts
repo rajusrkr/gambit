@@ -5,7 +5,7 @@ import {
 	marketOutcomes,
 	sportsCategory,
 } from "@repo/db";
-import { and, desc, eq, ne } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { z } from "zod";
 import {
@@ -13,14 +13,6 @@ import {
 	newOrderPausedQueue,
 	startMarketQueue,
 } from "../lib/redis";
-
-class ApiError extends Error {
-	public statusCode: number;
-	constructor(message: string, statusCode: number) {
-		super(message);
-		this.statusCode = statusCode;
-	}
-}
 
 interface GetMarketVolumeAndPricesArr {
 	prices: any[];
@@ -77,10 +69,6 @@ interface AdminSession {
 	approval: string;
 	permissions: string[] | null;
 	id: string;
-}
-
-interface CreateMarketDBTransactionRes {
-	marketId: string;
 }
 
 const MIN_MARKET_START = Math.floor(Date.now() / 1000);
@@ -174,50 +162,9 @@ function getTime(timestamp: number) {
 	return time;
 }
 
-interface MarketData {
-	title: string;
-	outcomes: {
-		titles: string[];
-		volume: number[];
-		prices: string[];
-	} | null;
-	marketStatus:
-		| "open"
-		| "settled"
-		| "new_order_paused"
-		| "open_soon"
-		| "canceled";
-	marketCategory: "sports" | "crypto" | "weather";
-}
-
-function getFormattedMarketData({ markets }: { markets: MarketData[] }) {
-	const formatMarketData = new Array(markets.length);
-
-	for (let i = 0; i < markets.length; i++) {
-		const market = markets[i];
-		const { outcomes } = market;
-
-		const formattedOutcomes = outcomes ? new Array(outcomes.titles.length) : [];
-
-		if (outcomes) {
-			for (let j = 0; j < outcomes.titles.length; j++) {
-				formattedOutcomes[j] = {
-					title: outcomes.titles[j],
-					price: outcomes.prices[j],
-					volume: outcomes.volume[j],
-				};
-			}
-		}
-
-		formatMarketData[i] = {
-			...market,
-			outcomes: formattedOutcomes,
-		};
-	}
-
-	return formatMarketData;
-}
-
+/**
+ * Admin can fetch football mathches from this api controller
+ */
 export const fetchFootball = async (req: Request, res: Response) => {
 	const urlData = req.query;
 	const date = urlData.date;
@@ -284,6 +231,10 @@ export const fetchFootball = async (req: Request, res: Response) => {
 		});
 	}
 };
+
+/**
+ * This api controller let admin create a new market
+ */
 export const createMarket = async (req: Request, res: Response) => {
 	const data = req.body;
 
@@ -300,7 +251,7 @@ export const createMarket = async (req: Request, res: Response) => {
 
 	try {
 		const dbTransactionResult = await db.transaction(
-			async (tx): Promise<CreateMarketDBTransactionRes> => {
+			async (tx): Promise<{ marketId: string }> => {
 				const [newMarket] = await tx
 					.insert(market)
 					.values({
@@ -396,124 +347,57 @@ export const createMarket = async (req: Request, res: Response) => {
 	}
 };
 
-export const getMarkets = async (req: Request, res: Response) => {
-	try {
-		const markets = await db
-			.select({
-				id: market.id,
-				title: market.title,
-				outcomes: {
-					titles: marketOutcomes.titles,
-					volume: marketOutcomes.volume,
-					prices: marketOutcomes.prices,
-				},
-				marketStatus: market.marketStatus,
-				marketCategory: market.category,
-			})
-			.from(market)
-			.leftJoin(marketOutcomes, eq(marketOutcomes.marketId, market.id))
-			.where(and(ne(market.marketStatus, "open_soon")))
-			.orderBy(desc(market.createdAt));
+/**
+ * Delete market(s) using this api controller
+ */
+export const deleteMarket = async (req: Request, res: Response) => {
+	// @ts-expect-error, getting admin id
+	const adminSession: AdminSession = req.user;
 
-		if (markets.length === 0) {
-			return res.status(200).json({
-				success: true,
-				message: "No markets available",
-				markets: [],
-			});
-		}
+	const adminId = adminSession.id;
 
-		const formatMarketData = getFormattedMarketData({ markets });
-
-		return res.status(200).json({
-			success: true,
-			message: "Market fetched successfully",
-			markets: formatMarketData,
+	if (!adminId) {
+		return res.status(401).json({
+			success: false,
+			message: "Admin identity is required to delete a market",
 		});
-	} catch (error: any) {
-		const errorCode = error.statusCode || 500;
-		const errorMessage = error.message || "Internal server error";
-		return res
-			.status(errorCode)
-			.json({ success: false, message: errorMessage });
 	}
-};
 
-export const marketById = async (req: Request, res: Response) => {
-	const paramsData = req.query;
+	const params = req.query;
 
-	const marketId = paramsData.marketId;
+	const marketIds = params.id;
+	let marketIdArr: string[] | any = [];
 
-	if (!marketId) {
+	if (typeof marketIds === "string") {
+		marketIdArr.push(marketIds);
+	} else if (typeof marketIds === "object") {
+		marketIdArr = marketIds;
+	} else {
 		return res.status(400).json({
 			success: false,
-			message: "Invalid market id, try with proper inputs",
+			message: "Market id(s) required to delete market(s)",
 		});
 	}
 
 	try {
-		const [getMarketById] = await db
-			.select({
-				id: market.id,
-				title: market.title,
-				description: market.description,
-				settlementRules: market.settlementRules,
-				marketType: market.category,
-				marketStatus: market.marketStatus,
-				closing: market.marketEnds,
-				price: marketOutcomes.prices,
-				outcomesTitle: marketOutcomes.titles,
-				volumes: marketOutcomes.volume,
-			})
-			.from(market)
-			.leftJoin(marketOutcomes, eq(marketOutcomes.marketId, String(marketId)))
-			.where(eq(market.id, String(marketId)));
+		const deleteMarket = await db
+			.delete(market)
+			.where(inArray(market.id, marketIdArr));
 
-		if (!getMarketById) {
+		if (deleteMarket.rowCount === 0) {
 			return res.status(400).json({
 				success: false,
-				message: "No market data found with provided market id",
+				message: "Unable to delete market, try again later",
 			});
 		}
 
-		const {
-			title,
-			description,
-			settlementRules,
-			marketType,
-			closing,
-			outcomesTitle,
-			price,
-			volumes,
-			marketStatus,
-			id,
-		} = getMarketById;
-
-		const fromattedMarketData = {
-			id,
-			title,
-			description,
-			settlementRules,
-			marketType,
-			closing,
-			marketStatus,
-			outcomes: outcomesTitle?.map((outcomeTitle, i) => ({
-				outcomeTitle,
-				price: price && price[i],
-				volume: volumes && volumes[i],
-			})),
-		};
-
-		return res.status(200).json({
-			success: true,
-			message: "Market fetched",
-			marketData: fromattedMarketData,
-		});
+		return res
+			.status(200)
+			.json({ success: true, message: "Market(s) deleted." });
 	} catch (error) {
-		return res.status(500).json({
-			success: false,
-			message:
-				error instanceof Error ? `${error.message}` : "Internal server error",
-		});
+		const errorMessage =
+			error instanceof Error ? error.message : "Internal server error";
+
+		return res.status(500).json({ success: false, message: errorMessage });
 	}
 };

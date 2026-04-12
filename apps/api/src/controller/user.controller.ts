@@ -1,5 +1,5 @@
 import { db, market, order, position } from "@repo/db";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { Request, Response } from "express";
 
 // Fetching positions by market id
@@ -107,62 +107,6 @@ export const fetchAllPosition = async (req: Request, res: Response) => {
 			error instanceof Error ? error.message : "Internal server error";
 
 		return res.status(500).json({ success: false, message: errorMessage });
-	}
-};
-
-// Fetch latest price for a market
-export const fetchLatestPrice = async (req: Request, res: Response) => {
-	const urlParams = req.query;
-	const marketIds = urlParams.id;
-
-	let marketIdsArr: string[] | any = [];
-
-	if (typeof marketIds === "string") {
-		marketIdsArr.push(marketIds);
-	} else if (typeof marketIds === "object") {
-		marketIdsArr = marketIds;
-	} else {
-		return res.status(400).json({
-			success: false,
-			message: "Market id(s) required to fetch latest prices",
-		});
-	}
-
-	console.log(marketIds);
-
-	try {
-		const getLatestPrice = await db
-			.select({
-				marketId: order.orderTakenIn,
-				prices: order.updatedPrices,
-			})
-			.from(order)
-			.where(inArray(order.orderTakenIn, marketIdsArr))
-			.orderBy(desc(order.createdAt));
-
-		if (!getLatestPrice || getLatestPrice.length === 0) {
-			return res.status(400).json({
-				success: false,
-				message: "No latest price found for the market",
-				latestPrice: null,
-			});
-		}
-
-		console.log(getLatestPrice);
-
-		return res.status(200).json({
-			success: true,
-			message: "Latest price fetched",
-			latestPrices: getLatestPrice,
-		});
-	} catch (error) {
-		console.log(error);
-
-		return res.status(500).json({
-			success: false,
-			message:
-				error instanceof Error ? `${error.message}` : "Internal server error",
-		});
 	}
 };
 

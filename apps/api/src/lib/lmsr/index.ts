@@ -93,12 +93,15 @@ class LMSRLogic {
 		const returnToTheUser = this.cost(providedVolumes).minus(
 			this.cost(subTractVolumes),
 		);
-		const multiplier = new Decimal(100)
-		const finalReturnToTheUser = returnToTheUser.times(multiplier)
+		const multiplier = new Decimal(100);
+		const finalReturnToTheUser = returnToTheUser.times(multiplier);
 		const newPrices = this.prices(subTractVolumes);
 
-
-		return { returnToTheUser: finalReturnToTheUser, newPrices, newVolumes: subTractVolumes };
+		return {
+			returnToTheUser: finalReturnToTheUser,
+			newPrices,
+			newVolumes: subTractVolumes,
+		};
 	}
 }
 

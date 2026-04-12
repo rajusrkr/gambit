@@ -1,5 +1,6 @@
 import { IconLoader2 } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -7,7 +8,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { Item, ItemContent, ItemTitle } from "@/components/ui/item";
 import {
 	Dialog,
 	DialogContent,
@@ -16,8 +16,8 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Item, ItemContent, ItemTitle } from "@/components/ui/item";
 import { BACKEND_URL } from "@/lib/utils";
 import { useAppStore } from "@/lib/zustand-store";
 
@@ -27,7 +27,7 @@ interface Position {
 	outcomeTitle: string;
 	qty: number;
 	avgPrice: string;
-	marketId: string
+	marketId: string;
 }
 
 interface PositionFetchRes {
@@ -80,10 +80,13 @@ export default function Position() {
 			params.append("id", position.marketId);
 		});
 
-		const res = await fetch(`${BACKEND_URL}/user/price/latest-prices?${params}`, {
-			method: "GET",
-			credentials: "include",
-		});
+		const res = await fetch(
+			`${BACKEND_URL}/user/price/latest-prices?${params}`,
+			{
+				method: "GET",
+				credentials: "include",
+			},
+		);
 
 		const response = await res.json();
 
