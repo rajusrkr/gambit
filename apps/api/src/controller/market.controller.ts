@@ -365,7 +365,7 @@ export const deleteMarket = async (req: Request, res: Response) => {
 
 	const params = req.query;
 
-	const marketIds = params.id;
+	const marketIds = params.marketId;
 	let marketIdArr: string[] | any = [];
 
 	if (typeof marketIds === "string") {

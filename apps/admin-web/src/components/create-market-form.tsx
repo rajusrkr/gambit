@@ -68,6 +68,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { BACKEND_URL, cryptoCoins } from "@/lib/utils";
 import { FootballMatchDataTable } from "./football-match-data-table";
 import { footballMatchColumn } from "./football-match-table-column";
+import { useNavigate } from "react-router";
 
 const MIN_MARKET_START = new Date().getTime();
 
@@ -173,6 +174,8 @@ const schema = z.discriminatedUnion("category", [
 type FormSchema = z.infer<typeof schema>;
 
 export default function CreateMarketForm() {
+	const navigate = useNavigate();
+
 	const form = useForm({
 		defaultValues: {
 			category: "crypto",
@@ -202,7 +205,14 @@ export default function CreateMarketForm() {
 			});
 
 			const response = await res.json();
-			console.log(response);
+
+			if (!response.success) {
+				throw new Error(response.message);
+			}
+
+			toast.success(response.message, { position: "top-right" });
+
+			navigate("/");
 		},
 	});
 
@@ -1111,13 +1121,16 @@ export default function CreateMarketForm() {
 												<Item className="mb-2" variant={"outline"}>
 													<ItemContent>
 														<ItemTitle>Outcomes</ItemTitle>
-														<ItemDescription>
-															{outcomes.map((outcome, i) => (
-																<li key={i} className="capitalize list-decimal">
-																	{`${i + 1}. ${outcome}`}
+														<div className="pl-4 dark:text-gray-400 text-gray-700">
+															{outcomes.map((outcome) => (
+																<li
+																	key={outcome}
+																	className="capitalize list-decimal"
+																>
+																	{` ${outcome}`}
 																</li>
 															))}
-														</ItemDescription>
+														</div>
 													</ItemContent>
 												</Item>
 											);

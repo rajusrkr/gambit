@@ -1,6 +1,7 @@
 {
 	"name": "gambit",
 	"devDependencies": {
+		"@biomejs/biome": "2.4.11",
 		"prettier": "^3.7.4",
 		"turbo": "^2.8.0",
 		"typescript": "5.9.2"

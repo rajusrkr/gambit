@@ -1,16 +1,9 @@
-import { fromNodeHeaders } from "better-auth/node";
-import {
-	type NextFunction,
-	type Request,
-	type Response,
-	Router,
-} from "express";
+import { Router } from "express";
 import {
 	createMarket,
 	deleteMarket,
 	fetchFootball,
 } from "../controller/market.controller";
-import { adminAuth } from "../lib/better-auth";
 import { authMiddleWareAdmin } from "../lib/helpers/middlewares/admin-auth";
 
 const router = Router();
