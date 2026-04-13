@@ -7,7 +7,20 @@ import { processMarketData } from "../lib/helpers/format-data";
  * Get market data controller, you can get all markets for
  * user home from this controller.
  */
-export const getMarkets = async (_req: Request, res: Response) => {
+export const getMarkets = async (req: Request, res: Response) => {
+	/**
+	 * const urlParams = {} as SomeDataType
+	 *
+	 * const limit = urlParams.limit // a number minimum is 3 max 50
+	 * const category = urlParams.category // can be all and other types from db
+	 * const status = urlParams.status  // can be all and other types from db
+	 *
+	 * if the any of the from categpory or status is all then will fetch everything
+	 */
+
+	const queryParams = req.query;
+	console.log(queryParams);
+
 	try {
 		const markets = await db
 			.select({

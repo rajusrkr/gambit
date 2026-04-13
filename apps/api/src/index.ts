@@ -26,12 +26,14 @@ app.use(express.json());
 app.listen(3333, () => {
 	console.log("API server listening on port: 3333");
 });
-
+// =================
+// Routes
+// =================
 import marketRouter from "./routes/market.route";
 app.use("/api/v0/market", marketRouter);
 
 import userRouter from "./routes/user.route";
-app.use("/api/v0", userRouter);
+app.use("/api/v0/user", userRouter);
 
 import dataRouter from "./routes/data.route";
-app.use("/api/v0/market", dataRouter);
+app.use("/api/v0/market/data", dataRouter);

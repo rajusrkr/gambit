@@ -5,24 +5,9 @@ import {
 	IconLoader2,
 	IconTrash,
 } from "@tabler/icons-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { deleteMarket, type MarketData } from "@/api/market";
-import { Button } from "./ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "./ui/card";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuGroup,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -33,9 +18,25 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 	AlertDialogTrigger,
-} from "./ui/alert-dialog";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuGroup,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function MarketCards({
 	data,
@@ -51,7 +52,7 @@ export default function MarketCards({
 		mutationFn: (marketId: string) => deleteMarket({ marketId }),
 		onSuccess: (data) => {
 			queryClient.invalidateQueries({ queryKey: ["fetch-markets"] });
-			toast.success(data, {position: "top-right"});
+			toast.success(data, { position: "top-right" });
 		},
 	});
 

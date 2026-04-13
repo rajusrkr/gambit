@@ -8,8 +8,9 @@ import { authMiddleWareUser } from "../lib/helpers/middlewares/user-auth";
 
 const router = Router();
 
-router.get("/data/get-markets", getMarkets);
-router.get("/data/get-latest-price", authMiddleWareUser, getLatestPrices);
-router.get("/data/get-market-by-id", authMiddleWareUser, getMarketById);
+router.get("/get-markets", getMarkets);
+router.get("/get-latest-price", authMiddleWareUser, getLatestPrices);
+// User only
+router.get("/get-market-by-id", authMiddleWareUser, getMarketById);
 
 export default router;
