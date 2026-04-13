@@ -43,12 +43,7 @@ import {
 	InputGroupAddon,
 	InputGroupInput,
 } from "@/components/ui/input-group";
-import {
-	Item,
-	ItemContent,
-	ItemDescription,
-	ItemTitle,
-} from "@/components/ui/item";
+import { Item, ItemContent, ItemTitle } from "@/components/ui/item";
 import {
 	Popover,
 	PopoverContent,
@@ -66,11 +61,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { BACKEND_URL, cryptoCoins } from "@/lib/utils";
+import { useNavigate } from "react-router";
 import { FootballMatchDataTable } from "./football-match-data-table";
 import { footballMatchColumn } from "./football-match-table-column";
-import { useNavigate } from "react-router";
 
-const MIN_MARKET_START = new Date().getTime();
+const MIN_MARKET_START = Date.now();
 
 interface FootballMatch {
 	matchId: string;

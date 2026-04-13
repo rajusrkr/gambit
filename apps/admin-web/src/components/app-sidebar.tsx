@@ -1,5 +1,6 @@
 import {
 	IconBrightnessFilled,
+	IconChartAreaLineFilled,
 	IconChessKnight,
 	IconCirclePlus,
 	IconDashboard,
@@ -33,6 +34,11 @@ export const appSidebarData = {
 			url: "/create-market",
 			icon: <IconCirclePlus />,
 		},
+		{
+			title: "Markets",
+			url: "/markets",
+			icon: <IconChartAreaLineFilled />,
+		},
 	],
 	navSecondary: [
 		{
@@ -63,12 +69,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 					<SidebarMenuItem className="grid grid-cols-[7fr_3fr]">
 						<SidebarMenuButton
 							asChild
-							className="data-[slot=sidebar-menu-button]:p-1.5!"
+							className="data-[slot=sidebar-menu-button]:p-1.5! hover:cursor-default select-none"
 						>
-							<a href="#">
+							<span>
 								<IconChessKnight className="size-5!" />
 								<span className="text-base font-semibold">Gambit Admin</span>
-							</a>
+							</span>
 						</SidebarMenuButton>
 						<SidebarMenuButton
 							onClick={() => {

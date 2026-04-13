@@ -4,8 +4,6 @@ import MarketCards from "./market-cards";
 
 export default function AllMarketCards() {
 	const { data, isLoading } = useMarket();
-	console.log(data);
-
 	return (
 		<div>
 			<MarketCards data={data as MarketData[]} isLoading={isLoading} />

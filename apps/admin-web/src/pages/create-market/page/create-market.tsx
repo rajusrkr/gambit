@@ -1,4 +1,4 @@
-import CreateMarketForm from "@/components/create-market-form";
+import CreateMarketForm from "../component/create-market-form";
 
 export default function CreateMarket() {
 	return (
