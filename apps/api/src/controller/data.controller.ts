@@ -1,7 +1,21 @@
 import { db, market, marketOutcomes, order } from "@repo/db";
-import { and, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import type { Request, Response } from "express";
+import z from "zod";
 import { processMarketData } from "../lib/helpers/format-data";
+
+const SearchParamSchema = z.object({
+	limit: z.enum(["3", "5", "10", "15", "20"]),
+	category: z.enum(["sports", "crypto", "weather", "all"]),
+	status: z.enum([
+		"open",
+		"settled",
+		"new_order_paused",
+		"open_soon",
+		"canceled",
+		"all",
+	]),
+});
 
 /**
  * Get market data controller, you can get all markets for
@@ -19,7 +33,15 @@ export const getMarkets = async (req: Request, res: Response) => {
 	 */
 
 	const queryParams = req.query;
-	console.log(queryParams);
+
+	const { success, data, error } = SearchParamSchema.safeParse(queryParams);
+
+	if (!success) {
+		const errorMessage = error.issues[0].message;
+		return res.status(400).json({ success: false, message: errorMessage });
+	}
+
+	const { category, status, limit } = data;
 
 	try {
 		const markets = await db
@@ -36,7 +58,13 @@ export const getMarkets = async (req: Request, res: Response) => {
 			})
 			.from(market)
 			.innerJoin(marketOutcomes, eq(marketOutcomes.marketId, market.id))
-			.where(and(ne(market.marketStatus, "open_soon")))
+			.where(
+				and(
+					category !== "all" ? eq(market.category, category) : undefined,
+					status !== "all" ? eq(market.marketStatus, status) : undefined,
+				),
+			)
+			.limit(Number(limit))
 			.orderBy(desc(market.createdAt));
 
 		if (markets.length === 0) {
