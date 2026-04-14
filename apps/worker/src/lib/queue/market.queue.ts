@@ -1,5 +1,5 @@
 import { db, market } from "@repo/db";
-import { Queue, Worker } from "bullmq";
+import { Worker } from "bullmq";
 import { eq } from "drizzle-orm";
 import type Redis from "ioredis";
 
@@ -24,9 +24,11 @@ class MarketQueue {
 				await this.updateMarketStatus({ marketId, marketStatus: "open" });
 			},
 			{ connection: this.redis },
-		).on("completed", (job) =>
-			console.log(`Market with id: ${job.data.marketId} is now open`),
-		);
+		)
+			.on("completed", (job) =>
+				console.log(`Market with id: ${job.data.marketId} is now open`),
+			)
+			.on("failed", (error) => console.log(error?.failedReason));
 	}
 
 	marketOrderPause() {
@@ -40,11 +42,13 @@ class MarketQueue {
 				});
 			},
 			{ connection: this.redis },
-		).on("completed", (job) =>
-			console.log(
-				`Market with id: ${job.data.marketId} has been paused for new orders.`,
-			),
-		);
+		)
+			.on("completed", (job) =>
+				console.log(
+					`Market with id: ${job.data.marketId} has been paused for new orders.`,
+				),
+			)
+			.on("error", (error) => console.log(error));
 	}
 
 	private async updateMarketStatus({
@@ -65,7 +69,7 @@ class MarketQueue {
 			}
 		} catch (error) {
 			throw new Error(
-				`Unable to change status for market id: ${marketId}, Reason: ${error instanceof Error ? error.message.toString() : "Internal problem"}`,
+				`Unable to update status for market id: ${marketId}, Reason: ${error instanceof Error ? error.message.toString() : "Internal problem"}`,
 			);
 		}
 	}

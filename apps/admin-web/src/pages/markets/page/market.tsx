@@ -6,7 +6,7 @@ export default function Market() {
 	const { data, isLoading } = useMarket({
 		category: "all",
 		status: "all",
-		limit: "5",
+		limit: "3",
 	});
 
 	return (

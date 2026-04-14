@@ -207,7 +207,7 @@ export default function CreateMarketForm() {
 
 			toast.success(response.message, { position: "top-right" });
 
-			navigate("/");
+			navigate("/markets");
 		},
 	});
 
