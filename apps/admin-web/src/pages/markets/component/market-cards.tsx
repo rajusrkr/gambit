@@ -7,7 +7,7 @@ import {
 } from "@tabler/icons-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { deleteMarket, type MarketData } from "@/api/market";
+import { deleteMarket } from "@/api/market";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -37,6 +37,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { MarketData } from "../types/market";
 
 export default function MarketCards({
 	data,
