@@ -1,11 +1,12 @@
-import { db, market, marketOutcomes, order } from "@repo/db";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { db, market, marketOutcomes } from "@repo/db";
+import { and, count, desc, eq, inArray } from "drizzle-orm";
 import type { Request, Response } from "express";
 import z from "zod";
 import { processMarketData } from "../lib/helpers/format-data";
 
-const SearchParamSchema = z.object({
-	limit: z.enum(["3", "5", "10", "15", "20"]),
+const QueryParamsSchema = z.object({
+	pageParam: z.string(),
+	limit: z.enum(["21", "31", "41"]),
 	category: z.enum(["sports", "crypto", "weather", "all"]),
 	status: z.enum([
 		"open",
@@ -16,80 +17,6 @@ const SearchParamSchema = z.object({
 		"all",
 	]),
 });
-
-/**
- * Get market data controller, you can get all markets for
- * user home from this controller.
- */
-export const getMarkets = async (req: Request, res: Response) => {
-	/**
-	 * const urlParams = {} as SomeDataType
-	 *
-	 * const limit = urlParams.limit // a number minimum is 3 max 50
-	 * const category = urlParams.category // can be all and other types from db
-	 * const status = urlParams.status  // can be all and other types from db
-	 *
-	 * if the any of the from categpory or status is all then will fetch everything
-	 */
-
-	const queryParams = req.query;
-
-	const { success, data, error } = SearchParamSchema.safeParse(queryParams);
-
-	if (!success) {
-		const errorMessage = error.issues[0].message;
-		return res.status(400).json({ success: false, message: errorMessage });
-	}
-
-	const { category, status, limit } = data;
-
-	try {
-		const markets = await db
-			.select({
-				marketId: market.id,
-				marketTitle: market.title,
-				outcomes: {
-					titles: marketOutcomes.titles,
-					volume: marketOutcomes.volume,
-					prices: marketOutcomes.prices,
-				},
-				marketStatus: market.marketStatus,
-				marketCategory: market.category,
-			})
-			.from(market)
-			.innerJoin(marketOutcomes, eq(marketOutcomes.marketId, market.id))
-			.where(
-				and(
-					category !== "all" ? eq(market.category, category) : undefined,
-					status !== "all" ? eq(market.marketStatus, status) : undefined,
-				),
-			)
-			.limit(Number(limit))
-			.orderBy(desc(market.createdAt));
-
-		if (markets.length === 0) {
-			return res.status(200).json({
-				success: true,
-				message: "No markets available",
-				markets: [],
-			});
-		}
-
-		const processedMarketData = processMarketData({ marketData: markets });
-
-		return res.status(200).json({
-			success: true,
-			message: "Market fetched successfully",
-			markets: processedMarketData,
-		});
-	} catch (error: any) {
-		const errorCode = error.statusCode || 500;
-		const errorMessage = error.message || "Internal server error";
-		return res
-			.status(errorCode)
-			.json({ success: false, message: errorMessage });
-	}
-};
 
 /**
  * Get market latest prices from this controller.
@@ -112,32 +39,31 @@ export const getLatestPrices = async (req: Request, res: Response) => {
 	}
 
 	try {
-		const getLatestPrice = await db
-			.selectDistinctOn([order.orderTakenIn], {
-				marketId: order.orderTakenIn,
-				prices: order.updatedPrices,
-				time: order.createdAt,
+		const getLatestPricesFromOutcomes = await db
+			.select({
+				marketId: marketOutcomes.marketId,
+				titles: marketOutcomes.titles,
+				prices: marketOutcomes.prices,
+				volume: marketOutcomes.volume,
 			})
-			.from(order)
-			.where(inArray(order.orderTakenIn, marketIdsArr))
-			.orderBy(desc(order.orderTakenIn), desc(order.createdAt));
+			.from(marketOutcomes)
+			.where(inArray(marketOutcomes.marketId, marketIdsArr));
 
-		if (!getLatestPrice || getLatestPrice.length === 0) {
-			return res.status(400).json({
-				success: false,
-				message: "No latest price found for the market",
-				latestPrice: null,
-			});
-		}
+		const formatted = getLatestPricesFromOutcomes.map((latest) => ({
+			marketId: latest.marketId,
+			prices: latest.prices.map((price, i) => ({
+				price,
+				title: latest.titles[i],
+				volume: latest.volume[i],
+			})),
+		}));
 
 		return res.status(200).json({
 			success: true,
 			message: "Latest price fetched",
-			latestPrice: getLatestPrice,
+			latestPrice: formatted,
 		});
 	} catch (error) {
-		console.log(error);
-
 		return res.status(500).json({
 			success: false,
 			message:
@@ -152,7 +78,6 @@ export const getLatestPrices = async (req: Request, res: Response) => {
  */
 export const getMarketById = async (req: Request, res: Response) => {
 	const paramsData = req.query;
-
 	const marketId = paramsData.marketId;
 
 	if (!marketId) {
@@ -225,6 +150,95 @@ export const getMarketById = async (req: Request, res: Response) => {
 			success: false,
 			message:
 				error instanceof Error ? `${error.message}` : "Internal server error",
+		});
+	}
+};
+
+/**
+ * Paginated market data fetching.
+ */
+export const getPaginatedMarketQueryData = async (
+	req: Request,
+	res: Response,
+) => {
+	const params = req.query;
+	const { success, data, error } = QueryParamsSchema.safeParse(params);
+
+	if (!success) {
+		const errorMessage = error.issues[0].message;
+		return res.status(400).json({ success: false, message: errorMessage });
+	}
+
+	try {
+		const [getMarketCount] = await db.select({ count: count() }).from(market);
+		if (getMarketCount.count === 0) {
+			return res.status(200).json({
+				success: true,
+				message: "No markets available to show",
+				markets: [],
+			});
+		}
+		const totalPage = Math.ceil(getMarketCount.count / Number(data.limit));
+		const offset = Number(data.pageParam) * Number(data.limit);
+
+		const getMarketData = await db
+			.select({
+				marketId: market.id,
+				marketTitle: market.title,
+				outcomes: {
+					titles: marketOutcomes.titles,
+					volume: marketOutcomes.volume,
+					prices: marketOutcomes.prices,
+				},
+				marketStatus: market.marketStatus,
+				marketCategory: market.category,
+			})
+			.from(market)
+			.innerJoin(marketOutcomes, eq(market.id, marketOutcomes.marketId))
+			.where(
+				and(
+					data.category !== "all"
+						? eq(market.category, data.category)
+						: undefined,
+					data.status !== "all"
+						? eq(market.marketStatus, data.status)
+						: undefined,
+				),
+			)
+			.orderBy(desc(market.createdAt))
+			.limit(Number(data.limit))
+			.offset(offset);
+
+		if (getMarketData.length === 0) {
+			return res.status(200).json({
+				success: true,
+				message: "No market available with those filters",
+				markets: [],
+			});
+		}
+
+		const processedMarketData = processMarketData({
+			marketData: getMarketData,
+		});
+
+		const marketData = {
+			totalCount: getMarketCount.count,
+			currentPage: Number(data.pageParam),
+			nextPage:
+				Number(data.pageParam) + 1 < totalPage
+					? Number(data.pageParam) + 1
+					: null,
+			totalPage,
+			marketsData: processedMarketData,
+		};
+
+		return res
+			.status(200)
+			.json({ success: true, message: "Markets fetched", markets: marketData });
+	} catch (error) {
+		return res.status(500).json({
+			success: false,
+			message: error instanceof Error ? error.message : "Internal server error",
 		});
 	}
 };

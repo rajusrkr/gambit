@@ -40,7 +40,9 @@ const sellOrderDataValidation = z.object({
 	selectedOutcome: z.string(),
 });
 
-// Buy order
+/**
+ * This controller handles buy order executions
+ */
 export const buyOrder = async (req: Request, res: Response) => {
 	//@ts-expect-error, getting user
 	const getUserId = req.user.id;
@@ -225,7 +227,9 @@ export const buyOrder = async (req: Request, res: Response) => {
 	}
 };
 
-// Sell order
+/**
+ * This controller handles sell order executions
+ */
 export const sellOrder = async (req: Request, res: Response) => {
 	// @ts-expect-error, getting the user id
 	const getUserId = req.user.id;
@@ -412,7 +416,9 @@ export const sellOrder = async (req: Request, res: Response) => {
 	}
 };
 
-// Order history of all users for a particular market
+/**
+ * This controller fetches order history
+ */
 export const orderHistory = async (req: Request, res: Response) => {
 	const params = req.query;
 	const marketId = params.marketId;

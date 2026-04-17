@@ -1,10 +1,10 @@
 import { Route, Routes } from "react-router-dom";
 import AppLayout from "@/components/app-layout";
-import PageNotFound from "./pages/404page";
-import LeaderBoard from "./pages/leader-board";
-import Market from "./pages/market";
-import MarketById from "./pages/market-by-id";
-import Position from "./pages/position";
+import PageNotFound from "./pages/404not-found/page";
+import LeaderBoard from "./pages/leader-board/page";
+import MarketById from "./pages/market-by-id/page";
+import Market from "./pages/markets/page";
+import Position from "./pages/positions/page";
 
 export default function App() {
 	return (

@@ -3,57 +3,54 @@ import {
 	IconCircleX,
 	IconLoader2,
 } from "@tabler/icons-react";
+import { useEffect } from "react";
+import { useInView } from "react-intersection-observer";
 import { Link } from "react-router-dom";
-import { toast } from "sonner";
-import { useMarkets } from "@/hooks/fetch/useMarket";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardFooter,
 	CardHeader,
 	CardTitle,
-} from "./ui/card";
+} from "@/components/ui/card";
 import {
 	Item,
 	ItemContent,
 	ItemDescription,
 	ItemMedia,
 	ItemTitle,
-} from "./ui/item";
+} from "@/components/ui/item";
+import { useMarket } from "../hook/useMarket";
 
 /**
  * Market cards component, markets will be fetched here and render those market data in cards format using shadcn card compoent.
  * This componet is exclusive to market.tsx.
  */
 export default function MarketCards() {
-	const {
-		marketLatestPriceQueryError,
-		marketQueryError,
-		isPending,
-		market,
-		latestPrice,
-	} = useMarkets();
+	const { latestPrices, markets, isLoading, fetchNextPage, isFethingNextPage } =
+		useMarket({
+			category: "all",
+			limit: "21",
+			status: "all",
+		});
+	const { ref, inView } = useInView();
 
-	if (isPending) {
+	useEffect(() => {
+		if (inView) {
+			fetchNextPage();
+		}
+	}, [inView, fetchNextPage]);
+
+	if (!isLoading) {
 		return (
-			<div className="flex justify-center items-center h-[80vh]">
+			<div className="flex justify-center items-center h-[70vh]">
 				<IconLoader2 className="animate-spin" />
 			</div>
 		);
 	}
 
-	if (marketQueryError) {
-		return <div>{marketQueryError.message}</div>;
-	}
-
-	if (marketLatestPriceQueryError) {
-		toast.error(marketLatestPriceQueryError.message, {
-			richColors: true,
-			position: "top-right",
-		});
-	}
-	if (!market || market.length === 0) {
+	if (!markets || markets.length === 0) {
 		return (
 			<div className="flex justify-center items-center h-[80vh] max-w-96 mx-auto">
 				<Item variant="outline">
@@ -74,7 +71,7 @@ export default function MarketCards() {
 
 	return (
 		<>
-			{market.length === 0 ? (
+			{markets.length === 0 ? (
 				<div className="flex justify-center items-center h-[80vh]">
 					<div className="flex justify-center items-center flex-col">
 						<IconCircleX className="text-gray-500" />
@@ -85,8 +82,8 @@ export default function MarketCards() {
 					</div>
 				</div>
 			) : (
-				<div className="grid md:grid-cols-3 grid-cols-1 gap-4">
-					{market.map((m) => (
+				<div className="grid md:grid-cols-3 grid-cols-1 gap-4 pb-4">
+					{markets.map((m) => (
 						<Card
 							key={m.marketId}
 							className="dark:bg-[#1e2428] relative dark:hover:bg-[#242b32] transition-all"
@@ -109,7 +106,7 @@ export default function MarketCards() {
 												{outcome.title} -{" "}
 												{Math.floor(
 													Number(
-														latestPrice?.[m.marketId]?.prices.find(
+														latestPrices?.[m.marketId]?.prices.find(
 															(price) => price.title === outcome.title,
 														)?.price,
 													) * 100,
@@ -126,7 +123,7 @@ export default function MarketCards() {
 												{outcome.title}-{" "}
 												{Math.floor(
 													Number(
-														latestPrice?.[m.marketId]?.prices.find(
+														latestPrices?.[m.marketId]?.prices.find(
 															(price) => price.title === outcome.title,
 														)?.price,
 													) * 100,
@@ -163,6 +160,7 @@ export default function MarketCards() {
 					))}
 				</div>
 			)}
+			<div ref={ref}>{isFethingNextPage && "Loading..."}</div>
 		</>
 	);
 }

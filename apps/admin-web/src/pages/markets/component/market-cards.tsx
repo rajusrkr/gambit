@@ -74,7 +74,7 @@ export default function MarketCards({
 					>
 						<CardHeader>
 							<CardTitle>{market.marketTitle}</CardTitle>
-							<CardDescription>{market.marketStatus}</CardDescription>
+							<CardDescription>{`${market.marketCategory}, ${market.marketStatus}`}</CardDescription>
 						</CardHeader>
 
 						<CardContent className="flex-1 flex flex-col justify-between">
