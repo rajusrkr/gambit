@@ -1,0 +1,1 @@
+ALTER TABLE "discussions" ADD COLUMN "id" uuid PRIMARY KEY NOT NULL;

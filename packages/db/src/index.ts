@@ -1,6 +1,7 @@
 export { db } from "./dbConnection";
 export * as adminSchema from "./schemas/admin";
 export { adminRequest } from "./schemas/adminRequest";
+export { discussionRoom, discussions } from "./schemas/discussion";
 export {
 	cryptoCategory,
 	market,
