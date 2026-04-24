@@ -42,7 +42,7 @@ export default function MarketCards() {
 		}
 	}, [inView, fetchNextPage]);
 
-	if (!isLoading) {
+	if (isLoading) {
 		return (
 			<div className="flex justify-center items-center h-[70vh]">
 				<IconLoader2 className="animate-spin" />

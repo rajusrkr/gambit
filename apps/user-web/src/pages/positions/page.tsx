@@ -1,5 +1,3 @@
-import { IconLoader2 } from "@tabler/icons-react";
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -18,112 +16,18 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Item, ItemContent, ItemTitle } from "@/components/ui/item";
-import { BACKEND_URL } from "@/lib/utils";
-import { useAppStore } from "@/lib/zustand-store";
+import { usePositionByMarketId } from "../market-by-id/hooks/usePositionByMarketId";
+import { useParams } from "react-router-dom";
 
-interface Position {
-	positionId: string;
-	marketTitle: string;
-	outcomeTitle: string;
-	qty: number;
-	avgPrice: string;
-	marketId: string;
-}
 
-interface PositionFetchRes {
-	success: boolean;
-	message: string;
-	positions: Position[];
-}
-
-interface LatestPrice {
-	marketId: string;
-	prices: {
-		price: string;
-		title: string;
-		volume: number;
-	}[];
-}
-
-interface LatestPriceRes {
-	success: boolean;
-	message: string;
-	latestPrices: LatestPrice[];
-}
 
 export default function Position() {
-	const { setAllPositins, allPositions, setLatestPrice } = useAppStore();
 
-	const fetchAllPositions = async (): Promise<Position[]> => {
-		const res = await fetch(`${BACKEND_URL}/user/position/get-all`, {
-			method: "GET",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			credentials: "include",
-		});
 
-		const response = await res.json();
+const marketId = useParams().id
 
-		const data = response as PositionFetchRes;
+	const {data: positions, } = usePositionByMarketId({marketId: marketId!})
 
-		if (!data.success) {
-			setAllPositins({ allPositions: [] });
-			throw new Error("Error in data fetching");
-		}
-		setAllPositins({ allPositions: data.positions });
-		return data.positions;
-	};
-	const fetchLatestPrices = async (): Promise<LatestPrice[]> => {
-		const params = new URLSearchParams();
-		allPositions.forEach((position) => {
-			params.append("id", position.marketId);
-		});
-
-		const res = await fetch(
-			`${BACKEND_URL}/user/price/latest-prices?${params}`,
-			{
-				method: "GET",
-				credentials: "include",
-			},
-		);
-
-		const response = await res.json();
-
-		const data = response as LatestPriceRes;
-
-		if (!data.success) {
-			throw new Error("Something went wrong while fetching latest price data");
-		}
-
-		setLatestPrice({ latestPrice: data.latestPrices });
-		return data.latestPrices;
-	};
-
-	const allPositionsQuery = useQuery({
-		queryKey: ["fetch-all-position"],
-		queryFn: fetchAllPositions,
-		staleTime: 0,
-		gcTime: 0,
-		refetchOnMount: "always",
-	});
-	const latestPricesQuery = useQuery({
-		queryKey: ["fetch-latest-prices"],
-		queryFn: fetchLatestPrices,
-	});
-
-	const isLoadingAnything =
-		allPositionsQuery.isLoading || latestPricesQuery.isLoading;
-
-	if (isLoadingAnything) {
-		return (
-			<div className="flex justify-center items-center h-[80vh]">
-				<span className="animate-spin">
-					<IconLoader2 />
-				</span>
-			</div>
-		);
-	}
 
 	return (
 		<div>
@@ -136,9 +40,9 @@ export default function Position() {
 				</CardHeader>
 
 				<CardContent>
-					{allPositions.length !== 0 ? (
+					{positions?.length !== 0 ? (
 						<div className="space-y-2">
-							{allPositions.map((position, i) => (
+							{positions?.map((position, i) => (
 								<Dialog key={position.positionId}>
 									<DialogTrigger className="w-full">
 										<Item
@@ -147,13 +51,13 @@ export default function Position() {
 										>
 											<div className="text-left">
 												<p className="text-xs dark:text-gray-400 text-gray-500">
-													{`QTY: ${position.qty}`}
+													{`QTY: ${position.positionQty}`}
 												</p>
 												<p className="font-semibold">
-													{`Market title: ${position.marketTitle}`}
+													{`Market title: ${position.outcome}`}
 												</p>
 												<p className="text-xs dark:text-gray-400 text-gray-500">
-													{`Selected outcome: ${position.outcomeTitle}`}
+													{`Selected outcome: ${position.outcome}`}
 												</p>
 											</div>
 
@@ -180,21 +84,21 @@ export default function Position() {
 												<ItemContent>
 													<ItemTitle>
 														<p className="font-semibold">
-															Market: {allPositions[i].marketTitle}
+															Market: {positions[i].outcome}
 														</p>
 													</ItemTitle>
 
 													<div className="text-gray-400">
 														<p>
-															{`Selected outcome: ${allPositions[i].outcomeTitle}`}
+															{`Selected outcome: ${positions[i].outcome}`}
 														</p>
 														<p>
 															Avg Price:{" "}
 															{Math.floor(
-																Number(allPositions[i].avgPrice) * 100,
+																Number(positions[i].avgPrice) * 100,
 															) / 100}
 														</p>
-														<p>QTY: {allPositions[i].qty}</p>
+														<p>QTY: {positions[i].positionQty}</p>
 													</div>
 													<div>
 														<p className="font-semibold">PNL: 200.52</p>

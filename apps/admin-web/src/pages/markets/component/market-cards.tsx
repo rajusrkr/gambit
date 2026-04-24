@@ -46,7 +46,7 @@ export default function MarketCards({
 	data: MarketData[];
 	isLoading: boolean;
 }) {
-	const queryClient = useQueryClient();
+	const queryClient = useQueryClient();	
 
 	const deleteMutate = useMutation({
 		mutationKey: ["delete-market"],

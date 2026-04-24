@@ -1,9 +1,3 @@
-import { useEffect } from "react";
-import { useInView } from "react-intersection-observer";
-import MarketCards from "../component/market-cards";
-import { useMarket, useMarketPaginationQuery } from "../hooks/useMarket";
-import type { MarketData } from "../types/market";
-
 // const formData = [
 // 	{
 // 		category: "crypto",
@@ -368,60 +362,15 @@ import type { MarketData } from "../types/market";
 // ];
 
 export default function Market() {
-	const { data, isLoading } = useMarket({
-		category: "all",
-		status: "all",
-		limit: "15",
-	});
 
-	const { data: pageData, next } = useMarketPaginationQuery();
-
-	console.log(pageData);
-	
-
-	const { ref, inView } = useInView();
-
-	useEffect(() => {
-		if (inView) {
-			console.log("in view....");
-			next();
-		}
-	}, [inView, next]);
 
 	return (
 		<div className="p-4">
-			{/* <Button
-				onClick={() => {
-					console.log("clicked");
-					// next();
-
-					// console.log(formData.length);
-					// if (formData.length) {
-					// 	return;
-					// }
-
-					formData.forEach(async (dt) => {
-						const res = await fetch(`${BACKEND_URL}/market/create-market`, {
-							method: "POST",
-							headers: {
-								"Content-Type": "application/json",
-							},
-							credentials: "include",
-							body: JSON.stringify(dt),
-						});
-
-						const response = await res.json();
-						console.log(response);
-					});
-				}}
-			>
-				Click to create market
-			</Button> */}
 			<div>
 				<h3 className="text-2xl font-semibold pb-4">Markets</h3>
 			</div>
-			<MarketCards data={data as MarketData[]} isLoading={isLoading} />
-			<div ref={ref}></div>
+			{/* <MarketCards data={data as MarketData[]} isLoading={isLoading} /> */}
+			hey there
 		</div>
 	);
 }
