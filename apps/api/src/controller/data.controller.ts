@@ -1,4 +1,12 @@
-import { db, market, marketOutcomes } from "@repo/db";
+import {
+	db,
+	discussions,
+	market,
+	marketOutcomes,
+	order,
+	position,
+	userSchema,
+} from "@repo/db";
 import { and, count, desc, eq, inArray } from "drizzle-orm";
 import type { Request, Response } from "express";
 import z from "zod";
@@ -71,7 +79,6 @@ export const getLatestPrices = async (req: Request, res: Response) => {
 		});
 	}
 };
-
 /**
  * Get market data by id.
  * From this controller client can fetch a market data by id
@@ -153,7 +160,6 @@ export const getMarketById = async (req: Request, res: Response) => {
 		});
 	}
 };
-
 /**
  * Paginated market data fetching.
  */
@@ -239,6 +245,209 @@ export const getPaginatedMarketQueryData = async (
 		return res.status(500).json({
 			success: false,
 			message: error instanceof Error ? error.message : "Internal server error",
+		});
+	}
+};
+/**
+ * Get position of an individual market of a user
+ */
+export const getPositionByMarketId = async (req: Request, res: Response) => {
+	// @ts-expect-error, getting user id
+	const getUserId = req.user.id;
+	const urlParams = req.query;
+	const marketId = String(urlParams.marketId);
+
+	if (!getUserId) {
+		return res.status(400).json({
+			success: false,
+			message: "User id required to fetch position data",
+		});
+	}
+
+	if (!marketId) {
+		return res.status(400).json({
+			success: false,
+			message: "Market id required to fetch position data.",
+		});
+	}
+
+	try {
+		const getPosition = await db
+			.select({
+				positionId: position.id,
+				marketId: position.positionTakenIn,
+				outcome: position.positionTakenFor,
+				avgPrice: position.buyAvgPrice,
+				positionQty: position.buyQty,
+				tradeCost: position.buyTradeCost,
+			})
+			.from(position)
+			.where(
+				and(
+					eq(position.positionTakenBy, getUserId),
+					eq(position.positionTakenIn, marketId),
+					eq(position.positionStatus, "open"),
+				),
+			);
+
+		if (!getPosition || getPosition.length === 0) {
+			return res.status(200).json({
+				success: true,
+				message: "No position available",
+				positions: [],
+			});
+		}
+
+		return res.status(200).json({
+			success: true,
+			message: "Position fetched successfully",
+			positions: getPosition,
+		});
+	} catch (error) {
+		return res.status(500).json({
+			success: false,
+			message: `${error instanceof Error ? error.message : "Internal server error"}`,
+		});
+	}
+};
+/**
+ * Get price history of a market by market id
+ */
+export const getPriceHistory = async (req: Request, res: Response) => {
+	const params = req.query;
+	const marketId = params.marketId;
+
+	if (!marketId) {
+		return res.status(400).json({
+			success: false,
+			message: "Market is require to fetch price history",
+		});
+	}
+
+	try {
+		const getPriceHistory = await db
+			.select({
+				prices: order.updatedPrices,
+				time: order.createdAt,
+			})
+			.from(order)
+			.where(eq(order.orderTakenIn, String(marketId)))
+			.innerJoin(market, eq(market.id, String(marketId)));
+
+		if (getPriceHistory.length === 0) {
+			return res.status(200).json({
+				success: true,
+				message: "There are no price history for this market",
+				priceHistory: [],
+			});
+		}
+
+		return res.status(200).json({
+			success: true,
+			message: "Price history fetched for the market",
+			priceHistory: getPriceHistory,
+		});
+	} catch (error) {
+		const errorMessage =
+			error instanceof Error ? error.message : "Internal server error";
+		return res.status(500).json({ success: false, message: errorMessage });
+	}
+};
+/**
+ * Discussions controller.
+ * Get discussions data from this controller
+ */
+export const getDiscussion = async (req: Request, res: Response) => {
+	const queryParams = req.query;
+	const marketId = queryParams.marketId;
+
+	if (!marketId) {
+		return res.status(400).json({
+			success: false,
+			message: "Market id is required to fetch discussions",
+		});
+	}
+
+	try {
+		const getMarketDiscussion = await db
+			.select({
+				id: discussions.id,
+				message: discussions.message,
+				userName: userSchema.user.name,
+				userId: userSchema.user.id,
+			})
+			.from(discussions)
+			.innerJoin(userSchema.user, eq(discussions.messageBy, userSchema.user.id))
+			.orderBy(desc(discussions.createdAt));
+
+		if (getMarketDiscussion.length === 0) {
+			return res.status(200).json({
+				success: true,
+				message: "No discussions available for this market",
+				discussions: [],
+			});
+		}
+
+		return res.status(200).json({
+			success: true,
+			message: "Discussions fetched",
+			discussions: getMarketDiscussion,
+		});
+	} catch (error) {
+		return res.status(500).json({
+			success: false,
+			message: error instanceof Error ? error.message : "Internal server error",
+		});
+	}
+};
+/**
+ * Order history.
+ * Get order history of a particular market
+ */
+export const orderHistory = async (req: Request, res: Response) => {
+	const params = req.query;
+	const marketId = params.marketId;
+
+	if (!marketId) {
+		return res.status(400).json({
+			success: false,
+			message:
+				"Market id is undefined. Market id is required to fetch order history",
+		});
+	}
+
+	try {
+		const getOrderHistory = await db
+			.select({
+				outcome: order.orderPlacedFor,
+				qty: order.qty,
+				avgPrice: order.averageTradedPrice,
+				orderedBy: userSchema.user.name,
+				orderId: order.id,
+			})
+			.from(order)
+			.where(eq(order.orderTakenIn, String(marketId)))
+			.innerJoin(userSchema.user, eq(userSchema.user.id, order.orderPlacedBy));
+
+		if (getOrderHistory.length === 0) {
+			return res
+				.status(200)
+				.json({
+					success: true,
+					message: "No order found for this market",
+					orders: [],
+				});
+		}
+
+		return res.status(200).json({
+			success: true,
+			message: "Market order history fetched successfully",
+			orders: getOrderHistory,
+		});
+	} catch (error) {
+		return res.status(500).json({
+			success: false,
+			message: `${error instanceof Error ? `${error.message}` : "Internal server error"}`,
 		});
 	}
 };
