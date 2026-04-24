@@ -27,14 +27,14 @@ class ApiError extends Error {
 // Zod validations
 const orderTypeEnum = z.enum(["buy", "sell"]);
 const orderDataValidation = z.object({
-	marketId: z.string(),
+	marketId: z.string().length(36),
 	orderType: orderTypeEnum,
 	orderQty: z.number().min(1, "Minimum order qty is 1"),
 	selectedOutcome: z.string(),
 });
 const sellOrderDataValidation = z.object({
-	positionId: z.string(),
-	marketId: z.string(),
+	positionId: z.string().length(36),
+	marketId: z.string().length(36),
 	orderType: orderTypeEnum,
 	orderQty: z.number().min(1, "Minimum order qty is 1"),
 	selectedOutcome: z.string(),
@@ -413,52 +413,5 @@ export const sellOrder = async (req: Request, res: Response) => {
 		return res
 			.status(statusCode)
 			.json({ success: false, message: errorMessage });
-	}
-};
-
-/**
- * This controller fetches order history
- */
-export const orderHistory = async (req: Request, res: Response) => {
-	const params = req.query;
-	const marketId = params.marketId;
-
-	if (!marketId) {
-		return res.status(400).json({
-			success: false,
-			message:
-				"Market id is undefined. Market id is required to fetch order history",
-		});
-	}
-
-	try {
-		const getOrderHistory = await db
-			.select({
-				outcome: order.orderPlacedFor,
-				qty: order.qty,
-				avgPrice: order.averageTradedPrice,
-				orderedBy: userSchema.user.name,
-				orderId: order.id,
-			})
-			.from(order)
-			.where(eq(order.orderTakenIn, String(marketId)))
-			.innerJoin(userSchema.user, eq(userSchema.user.id, order.orderPlacedBy));
-
-		if (getOrderHistory.length === 0) {
-			return res
-				.status(200)
-				.json({ success: false, messafe: "No order found for this market" });
-		}
-
-		return res.status(200).json({
-			success: true,
-			message: "Market order history fetched successfully",
-			orders: getOrderHistory,
-		});
-	} catch (error) {
-		return res.status(500).json({
-			success: false,
-			message: `${error instanceof Error ? `${error.message}` : "Internal server error"}`,
-		});
 	}
 };

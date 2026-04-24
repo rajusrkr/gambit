@@ -17,6 +17,18 @@ const userAuth = betterAuth({
 		"http://localhost:5174",
 		"http://localhost:5175",
 	],
+	advanced: {
+		cookiePrefix: "user-web",
+		cookies: {
+			session_token: {
+				name: "user_auth",
+				attributes: {
+					httpOnly: true,
+					secure: true
+				}
+			}
+		}
+	},
 	emailAndPassword: {
 		enabled: true,
 		requireEmailVerification: true,
