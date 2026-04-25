@@ -22,7 +22,7 @@ const useMarket = ({
 	const { sendMessage } = useWebsocket();
 
 	const getPaginatedMarketQuery = useInfiniteQuery({
-		queryKey: ["markets"],
+		queryKey: ["markets", category],
 		queryFn: async ({ pageParam }): Promise<MarketsData> => {
 			const params = new URLSearchParams({
 				pageParam: pageParam.toString(),
@@ -60,6 +60,7 @@ const useMarket = ({
 		staleTime: 0,
 		gcTime: 0,
 		refetchOnMount: "always",
+		retry: 1,
 	});
 
 	const markets = getPaginatedMarketQuery.data?.pages[0].marketsData.length;
@@ -81,8 +82,9 @@ const useMarket = ({
 		markets: getPaginatedMarketQuery.data?.pages[0].marketsData,
 		latestPrices: marketLatestPriceQuery.data,
 		fetchNextPage: getPaginatedMarketQuery.fetchNextPage,
-		isLoading: getPaginatedMarketQuery.isLoading || marketLatestPriceQuery.isLoading,
-		isFethingNextPage: getPaginatedMarketQuery.isFetchingNextPage
+		isLoading:
+			getPaginatedMarketQuery.isLoading || marketLatestPriceQuery.isLoading,
+		isFethingNextPage: getPaginatedMarketQuery.isFetchingNextPage,
 	};
 
 	return marketData;

@@ -1,11 +1,7 @@
-import {
-	IconCircleDashedX,
-	IconCircleX,
-	IconLoader2,
-} from "@tabler/icons-react";
 import { useEffect } from "react";
-import { useInView } from "react-intersection-observer";
 import { Link } from "react-router-dom";
+import { useInView } from "react-intersection-observer";
+import { IconCircleDashedX, IconLoader2 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -21,67 +17,74 @@ import {
 	ItemMedia,
 	ItemTitle,
 } from "@/components/ui/item";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMarket } from "../hook/useMarket";
+import type { MARKET_CATEGORY } from "../types";
+import { useMarketCardsFilter } from "../zustand-store";
 
 /**
  * Market cards component, markets will be fetched here and render those market data in cards format using shadcn card compoent.
  * This componet is exclusive to market.tsx.
  */
 export default function MarketCards() {
+	const { marketCategory, setMarketCategory } = useMarketCardsFilter();
 	const { latestPrices, markets, isLoading, fetchNextPage, isFethingNextPage } =
 		useMarket({
-			category: "all",
+			category: marketCategory,
 			limit: "21",
-			status: "all",
+			status: "open",
 		});
-	const { ref, inView } = useInView();
 
+	const { ref, inView } = useInView();
 	useEffect(() => {
 		if (inView) {
 			fetchNextPage();
 		}
 	}, [inView, fetchNextPage]);
 
-	if (isLoading) {
-		return (
-			<div className="flex justify-center items-center h-[70vh]">
-				<IconLoader2 className="animate-spin" />
-			</div>
-		);
-	}
-
-	if (!markets || markets.length === 0) {
-		return (
-			<div className="flex justify-center items-center h-[80vh] max-w-96 mx-auto">
-				<Item variant="outline">
-					<ItemMedia variant="icon">
-						<IconCircleDashedX />
-					</ItemMedia>
-					<ItemContent>
-						<ItemTitle>No markets available</ItemTitle>
-						<ItemDescription>
-							There are no markets available to trade at the moment, please try
-							again later.
-						</ItemDescription>
-					</ItemContent>
-				</Item>
-			</div>
-		);
-	}
-
 	return (
 		<>
-			{markets.length === 0 ? (
-				<div className="flex justify-center items-center h-[80vh]">
-					<div className="flex justify-center items-center flex-col">
-						<IconCircleX className="text-gray-500" />
+			<div className="mb-4">
+				<Tabs
+					defaultValue={marketCategory}
+					onValueChange={(e) => {
+						setMarketCategory({ category: e as MARKET_CATEGORY });
+					}}
+				>
+					<TabsList variant={"line"}>
+						<TabsTrigger value="all">All</TabsTrigger>
+						<TabsTrigger value="sports">Sports</TabsTrigger>
+						<TabsTrigger value="crypto">Crypto</TabsTrigger>
+						<TabsTrigger value="weather">Weather</TabsTrigger>
+					</TabsList>
+				</Tabs>
+			</div>
 
-						<p className="text-2xl font-semibold text-gray-500">
-							No markets avaialble to show
-						</p>
+			{/* Loader */}
+			{isLoading ? (
+				<div className="flex justify-center items-center h-[70vh]">
+					<IconLoader2 className="animate-spin" />
+				</div>
+			) : //  If no markets
+			!markets || markets.length === 0 ? (
+				<div>
+					<div className="flex justify-center items-center h-[70vh] max-w-96 mx-auto">
+						<Item variant="outline">
+							<ItemMedia variant="icon">
+								<IconCircleDashedX />
+							</ItemMedia>
+							<ItemContent>
+								<ItemTitle>No markets available</ItemTitle>
+								<ItemDescription>
+									There are no open markets available for the selected filter,
+									please try again later.
+								</ItemDescription>
+							</ItemContent>
+						</Item>
 					</div>
 				</div>
 			) : (
+				// Market cards
 				<div className="grid md:grid-cols-3 grid-cols-1 gap-4 pb-4">
 					{markets.map((m) => (
 						<Card
@@ -160,7 +163,12 @@ export default function MarketCards() {
 					))}
 				</div>
 			)}
-			<div ref={ref}>{isFethingNextPage && "Loading..."}</div>
+			<div
+				ref={ref}
+				className="justify-center items-center flex pb-4 font-semibold text-gray-500"
+			>
+				{isFethingNextPage && "Loading more..."}
+			</div>
 		</>
 	);
 }

@@ -176,7 +176,19 @@ export const getPaginatedMarketQueryData = async (
 	}
 
 	try {
-		const [getMarketCount] = await db.select({ count: count() }).from(market);
+		const [getMarketCount] = await db
+			.select({ count: count() })
+			.from(market)
+			.where(
+				and(
+					data.category !== "all"
+						? eq(market.category, data.category)
+						: undefined,
+					data.status !== "all"
+						? eq(market.marketStatus, data.status)
+						: undefined,
+				),
+			);
 		if (getMarketCount.count === 0) {
 			return res.status(200).json({
 				success: true,
@@ -430,13 +442,11 @@ export const orderHistory = async (req: Request, res: Response) => {
 			.innerJoin(userSchema.user, eq(userSchema.user.id, order.orderPlacedBy));
 
 		if (getOrderHistory.length === 0) {
-			return res
-				.status(200)
-				.json({
-					success: true,
-					message: "No order found for this market",
-					orders: [],
-				});
+			return res.status(200).json({
+				success: true,
+				message: "No order found for this market",
+				orders: [],
+			});
 		}
 
 		return res.status(200).json({
