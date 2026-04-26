@@ -30,14 +30,14 @@ export const appSidebarData = {
 			icon: <IconDashboard />,
 		},
 		{
-			title: "Create market",
-			url: "/create-market",
-			icon: <IconCirclePlus />,
-		},
-		{
 			title: "Markets",
 			url: "/markets",
 			icon: <IconChartAreaLineFilled />,
+		},
+		{
+			title: "Create market",
+			url: "/create-market",
+			icon: <IconCirclePlus />,
 		},
 	],
 	navSecondary: [

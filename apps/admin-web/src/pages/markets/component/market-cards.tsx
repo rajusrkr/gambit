@@ -116,27 +116,45 @@ export default function MarketCards() {
 					</Tabs>
 				</div>
 
-				<div className="mb-4">
+				<div className="mb-4 overflow-hidden">
 					<Badge>Status</Badge>
-
-					<Tabs
-						defaultValue={status}
-						onValueChange={(e) => {
-							setMarketStatus({ status: e as MARKET_STATUS });
-						}}
-					>
-						<TabsList variant={"line"}>
-							{}
-							<TabsTrigger value="all">All</TabsTrigger>
-							<TabsTrigger value="open">Open</TabsTrigger>
-							<TabsTrigger value="settled">Settled</TabsTrigger>
-							<TabsTrigger value="new_order_paused">
-								New order paused
-							</TabsTrigger>
-							<TabsTrigger value="open_soon">Open soon</TabsTrigger>
-							<TabsTrigger value="canceled">Canceled</TabsTrigger>
-						</TabsList>
-					</Tabs>
+					<div className="relative">
+						<Tabs
+							defaultValue={status}
+							onValueChange={(e) => {
+								setMarketStatus({ status: e as MARKET_STATUS });
+							}}
+						>
+							<div
+								className="w-full overflow-x-auto overflow-y-hidden scroll-smooth"
+								style={{
+									scrollbarWidth: "none",
+									WebkitOverflowScrolling: "touch",
+								}}
+							>
+								<TabsList variant="line">
+									<TabsTrigger value="all" className="shrink-0">
+										All
+									</TabsTrigger>
+									<TabsTrigger value="open" className="shrink-0">
+										Open
+									</TabsTrigger>
+									<TabsTrigger value="settled" className="shrink-0">
+										Settled
+									</TabsTrigger>
+									<TabsTrigger value="new_order_paused" className="shrink-0">
+										New order paused
+									</TabsTrigger>
+									<TabsTrigger value="open_soon" className="shrink-0">
+										Open soon
+									</TabsTrigger>
+									<TabsTrigger value="canceled" className="shrink-0">
+										Canceled
+									</TabsTrigger>
+								</TabsList>
+							</div>
+						</Tabs>
+					</div>
 				</div>
 			</div>
 
