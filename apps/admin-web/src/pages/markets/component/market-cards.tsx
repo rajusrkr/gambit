@@ -1,4 +1,8 @@
+import { useEffect } from "react";
+import { useInView } from "react-intersection-observer";
+import { toast } from "sonner";
 import {
+	IconCircleDashedX,
 	IconDotsVertical,
 	IconEdit,
 	IconExternalLink,
@@ -6,9 +10,6 @@ import {
 	IconTrash,
 } from "@tabler/icons-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
-import { useInView } from "react-intersection-observer";
-import { toast } from "sonner";
 import { deleteMarket } from "@/api/market";
 import {
 	AlertDialog,
@@ -23,7 +24,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
 import {
 	Card,
 	CardContent,
@@ -40,7 +40,17 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+	Item,
+	ItemContent,
+	ItemDescription,
+	ItemMedia,
+	ItemTitle,
+} from "@/components/ui/item";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMarket } from "../hooks/useMarket";
+import type { MARKET_CATEGORY, MARKET_STATUS } from "../types";
+import { useMarketFilters } from "../zustand-store";
 
 const marketCategory = [
 	{ key: "crypto", value: "Crypto" },
@@ -57,10 +67,16 @@ const marketStatus = [
 ];
 
 export default function MarketCards() {
+	const {
+		marketCategory: category,
+		marketStatus: status,
+		setMarketCategory,
+		setMarketStatus,
+	} = useMarketFilters();
 	const { markets, fetchNextPage, isFetchingNextPage, isLoading } = useMarket({
-		category: "all",
+		category: category,
 		limit: "21",
-		status: "all",
+		status: status,
 	});
 
 	const { ref, inView } = useInView();
@@ -80,134 +96,202 @@ export default function MarketCards() {
 		},
 	});
 
-	if (isLoading) {
-		return <div>Loading...</div>;
-	}
-
 	return (
-		<div className="grid sm:grid-cols-3 grid-cols-1 gap-1.5">
-			{markets?.length === 0 ? (
+		<>
+			<div className="sm:flex sm:justify-between grid">
+				<div className="mb-4">
+					<Badge>Category</Badge>
+					<Tabs
+						defaultValue={category}
+						onValueChange={(e) => {
+							setMarketCategory({ category: e as MARKET_CATEGORY });
+						}}
+					>
+						<TabsList variant={"line"}>
+							<TabsTrigger value="all">All</TabsTrigger>
+							<TabsTrigger value="sports">Sports</TabsTrigger>
+							<TabsTrigger value="crypto">Crypto</TabsTrigger>
+							<TabsTrigger value="weather">Weather</TabsTrigger>
+						</TabsList>
+					</Tabs>
+				</div>
+
+				<div className="mb-4">
+					<Badge>Status</Badge>
+
+					<Tabs
+						defaultValue={status}
+						onValueChange={(e) => {
+							setMarketStatus({ status: e as MARKET_STATUS });
+						}}
+					>
+						<TabsList variant={"line"}>
+							{}
+							<TabsTrigger value="all">All</TabsTrigger>
+							<TabsTrigger value="open">Open</TabsTrigger>
+							<TabsTrigger value="settled">Settled</TabsTrigger>
+							<TabsTrigger value="new_order_paused">
+								New order paused
+							</TabsTrigger>
+							<TabsTrigger value="open_soon">Open soon</TabsTrigger>
+							<TabsTrigger value="canceled">Canceled</TabsTrigger>
+						</TabsList>
+					</Tabs>
+				</div>
+			</div>
+
+			{isLoading ? (
+				<div className="flex justify-center items-center h-[70vh]">
+					<IconLoader2 className="animate-spin" />
+				</div>
+			) : !markets || markets.length === 0 ? (
 				<div>
-					<p>No markets to show</p>
+					<div className="flex justify-center items-center h-[70vh] max-w-96 mx-auto">
+						<Item variant="outline">
+							<ItemMedia variant="icon">
+								<IconCircleDashedX />
+							</ItemMedia>
+							<ItemContent>
+								<ItemTitle>No markets available</ItemTitle>
+								<ItemDescription>
+									There are no open markets available for the selected filter,
+									please try again later.
+								</ItemDescription>
+							</ItemContent>
+						</Item>
+					</div>
 				</div>
 			) : (
-				markets?.map((market) => (
-					<Card
-						key={market.marketId}
-						className="relative flex flex-col justify-between"
-					>
-						<CardHeader>
-							<CardTitle>{market.marketTitle}</CardTitle>
-							<CardDescription className="space-x-2">
-								<Badge variant={"secondary"} className="select-none">
-									{
-										marketCategory.find(
-											(ctgry) => ctgry.key === market.marketCategory,
-										)?.value
-									}
-								</Badge>
-								<Badge variant={"secondary"} className="select-none">
-									{
-										marketStatus.find(
-											(status) => status.key === market.marketStatus,
-										)?.value
-									}
-								</Badge>
-							</CardDescription>
-						</CardHeader>
+				<div className="grid sm:grid-cols-3 grid-cols-1 gap-1.5">
+					{markets?.length === 0 ? (
+						<div>
+							<p>No markets to show</p>
+						</div>
+					) : (
+						markets?.map((market) => (
+							<Card
+								key={market.marketId}
+								className="relative flex flex-col justify-between"
+							>
+								<CardHeader>
+									<CardTitle>{market.marketTitle}</CardTitle>
+									<CardDescription className="space-x-2">
+										<Badge variant={"secondary"} className="select-none">
+											{
+												marketCategory.find(
+													(ctgry) => ctgry.key === market.marketCategory,
+												)?.value
+											}
+										</Badge>
+										<Badge variant={"secondary"} className="select-none">
+											{
+												marketStatus.find(
+													(status) => status.key === market.marketStatus,
+												)?.value
+											}
+										</Badge>
+									</CardDescription>
+								</CardHeader>
 
-						<CardContent className="flex-1 flex flex-col justify-between">
-							<div className="mb-2 space-x-2">
-								<p className="font-semibold mb-0.5 text-gray-500">Outcomes</p>
-								{market.outcomes.map((outcome) => (
-									<Badge
-										variant={"outline"}
-										key={outcome.title}
-										className="select-none"
-									>
-										{outcome.title}
-									</Badge>
-								))}
-							</div>
-
-							<div className="flex justify-end -ml-2 -mb-2">
-								<DropdownMenu>
-									<DropdownMenuTrigger asChild>
-										<Button variant="ghost">
-											<IconDotsVertical />
-										</Button>
-									</DropdownMenuTrigger>
-									<DropdownMenuContent className="w-40" align="start">
-										<DropdownMenuGroup>
-											<DropdownMenuLabel>Actions</DropdownMenuLabel>
-										</DropdownMenuGroup>
-										<DropdownMenuSeparator />
-										<DropdownMenuGroup>
-											<DropdownMenuItem>
-												View
-												<IconExternalLink />
-											</DropdownMenuItem>
-											<DropdownMenuItem>
-												Edit
-												<IconEdit />
-											</DropdownMenuItem>
-											<DropdownMenuItem
-												variant={"destructive"}
-												onSelect={(event: { preventDefault: () => void }) => {
-													event.preventDefault();
-												}}
+								<CardContent className="flex-1 flex flex-col justify-between">
+									<div className="mb-2 space-x-2">
+										<p className="font-semibold mb-0.5 text-gray-500">
+											Outcomes
+										</p>
+										{market.outcomes.map((outcome) => (
+											<Badge
+												variant={"outline"}
+												key={outcome.title}
+												className="select-none"
 											>
-												<AlertDialog>
-													<AlertDialogTrigger asChild>
-														<p className="flex gap-1 items-center w-full">
-															Delete
-															<IconTrash />
-														</p>
-													</AlertDialogTrigger>
-													<AlertDialogContent>
-														<AlertDialogHeader>
-															<AlertDialogTitle>
-																Are sure that you want to delete?
-															</AlertDialogTitle>
-															<AlertDialogDescription>
-																This action cannot be undone. This will
-																permanently delete this market from our servers.
-															</AlertDialogDescription>
-														</AlertDialogHeader>
-														<AlertDialogFooter>
-															<AlertDialogCancel>Cancel</AlertDialogCancel>
-															<AlertDialogAction
-																variant={"destructive"}
-																onClick={async (e: {
-																	preventDefault: () => void;
-																}) => {
-																	e.preventDefault();
-																	deleteMutate.mutate(market.marketId);
-																}}
-															>
-																{deleteMutate.isPending ? (
-																	<span className="flex gap-1 items-center">
-																		Delete{" "}
-																		<IconLoader2 className="animate-spin size-3" />
-																	</span>
-																) : (
-																	"Delete"
-																)}
-															</AlertDialogAction>
-														</AlertDialogFooter>
-													</AlertDialogContent>
-												</AlertDialog>
-											</DropdownMenuItem>
-										</DropdownMenuGroup>
-									</DropdownMenuContent>
-								</DropdownMenu>
-							</div>
-						</CardContent>
-					</Card>
-				))
-			)}
+												{outcome.title}
+											</Badge>
+										))}
+									</div>
 
-			<div ref={ref}>{isFetchingNextPage && "Loading more..."}</div>
-		</div>
+									<div className="flex justify-end -ml-2 -mb-2">
+										<DropdownMenu>
+											<DropdownMenuTrigger asChild>
+												<Button variant="ghost">
+													<IconDotsVertical />
+												</Button>
+											</DropdownMenuTrigger>
+											<DropdownMenuContent className="w-40" align="start">
+												<DropdownMenuGroup>
+													<DropdownMenuLabel>Actions</DropdownMenuLabel>
+												</DropdownMenuGroup>
+												<DropdownMenuSeparator />
+												<DropdownMenuGroup>
+													<DropdownMenuItem>
+														View
+														<IconExternalLink />
+													</DropdownMenuItem>
+													<DropdownMenuItem>
+														Edit
+														<IconEdit />
+													</DropdownMenuItem>
+													<DropdownMenuItem
+														variant={"destructive"}
+														onSelect={(event: {
+															preventDefault: () => void;
+														}) => {
+															event.preventDefault();
+														}}
+													>
+														<AlertDialog>
+															<AlertDialogTrigger asChild>
+																<p className="flex gap-1 items-center w-full">
+																	Delete
+																	<IconTrash />
+																</p>
+															</AlertDialogTrigger>
+															<AlertDialogContent>
+																<AlertDialogHeader>
+																	<AlertDialogTitle>
+																		Are sure that you want to delete?
+																	</AlertDialogTitle>
+																	<AlertDialogDescription>
+																		This action cannot be undone. This will
+																		permanently delete this market from our
+																		servers.
+																	</AlertDialogDescription>
+																</AlertDialogHeader>
+																<AlertDialogFooter>
+																	<AlertDialogCancel>Cancel</AlertDialogCancel>
+																	<AlertDialogAction
+																		variant={"destructive"}
+																		onClick={async (e: {
+																			preventDefault: () => void;
+																		}) => {
+																			e.preventDefault();
+																			deleteMutate.mutate(market.marketId);
+																		}}
+																	>
+																		{deleteMutate.isPending ? (
+																			<span className="flex gap-1 items-center">
+																				Delete{" "}
+																				<IconLoader2 className="animate-spin size-3" />
+																			</span>
+																		) : (
+																			"Delete"
+																		)}
+																	</AlertDialogAction>
+																</AlertDialogFooter>
+															</AlertDialogContent>
+														</AlertDialog>
+													</DropdownMenuItem>
+												</DropdownMenuGroup>
+											</DropdownMenuContent>
+										</DropdownMenu>
+									</div>
+								</CardContent>
+							</Card>
+						))
+					)}
+
+					<div ref={ref}>{isFetchingNextPage && "Loading more..."}</div>
+				</div>
+			)}
+		</>
 	);
 }
