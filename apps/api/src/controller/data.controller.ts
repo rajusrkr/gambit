@@ -461,3 +461,30 @@ export const orderHistory = async (req: Request, res: Response) => {
 		});
 	}
 };
+
+/**
+ * Get all users from this controller. It's admin only.
+ */
+export const getAllusers = async (_req: Request, res: Response) => {
+	try {
+		const getUsers = await db.select().from(userSchema.user);
+
+		if (getUsers.length === 0) {
+			return res.status(200).json({
+				success: false,
+				message: "No users available",
+				users: getUsers,
+			});
+		}
+
+		return res.status(200).json({
+			success: true,
+			message: "Users fetched successfully",
+			users: getUsers,
+		});
+	} catch (error) {
+		const errorMessage =
+			error instanceof Error ? error.message : "Internal server error";
+		return res.status(500).json({ success: false, message: errorMessage });
+	}
+};
