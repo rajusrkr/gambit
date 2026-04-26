@@ -5,7 +5,7 @@ import {
 	marketOutcomes,
 	sportsCategory,
 } from "@repo/db";
-import { eq, inArray } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { z } from "zod";
 import {
@@ -387,7 +387,7 @@ export const deleteMarket = async (req: Request, res: Response) => {
 		if (deleteMarket.rowCount === 0) {
 			return res.status(400).json({
 				success: false,
-				message: "Unable to delete market, try again later",
+				message: "Unable to delete market, does the market exists?",
 			});
 		}
 
