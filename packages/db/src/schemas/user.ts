@@ -33,6 +33,7 @@ export const user = pgTable("user", {
 	})
 		.default("0")
 		.notNull(),
+	withdrawalEnabled: boolean("withdrawal_enabled").default(true),
 });
 
 export const session = pgTable(

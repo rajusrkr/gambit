@@ -204,6 +204,13 @@
       "when": 1776600113041,
       "tag": "0028_yellow_justin_hammer",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1777200305821,
+      "tag": "0029_deep_blindfold",
+      "breakpoints": true
     }
   ]
 }
