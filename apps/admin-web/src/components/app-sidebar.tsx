@@ -7,6 +7,7 @@ import {
 	IconHelp,
 	IconSearch,
 	IconSettings,
+	IconUsers,
 } from "@tabler/icons-react";
 import type * as React from "react";
 import { NavMain } from "@/components/nav-main";
@@ -38,6 +39,12 @@ export const appSidebarData = {
 			title: "Create market",
 			url: "/create-market",
 			icon: <IconCirclePlus />,
+		},
+
+		{
+			title: "Users",
+			url: "/users",
+			icon: <IconUsers />,
 		},
 	],
 	navSecondary: [

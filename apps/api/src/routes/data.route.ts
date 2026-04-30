@@ -9,8 +9,8 @@ import {
 	getPriceHistory,
 	orderHistory,
 } from "../controller/data.controller";
-import { authMiddleWareUser } from "../lib/helpers/middlewares/user-auth";
 import { authMiddleWareAdmin } from "../lib/helpers/middlewares/admin-auth";
+import { authMiddleWareUser } from "../lib/helpers/middlewares/user-auth";
 
 const router = Router();
 
@@ -23,6 +23,6 @@ router.get("/price-history", authMiddleWareUser, getPriceHistory);
 router.get("/market-discussions", authMiddleWareUser, getDiscussion);
 router.get("/order-history", authMiddleWareUser, orderHistory);
 // Admin only
-router.get("/user/all", authMiddleWareAdmin, getAllusers);
+router.get("/user/all-users", authMiddleWareAdmin, getAllusers);
 
 export default router;

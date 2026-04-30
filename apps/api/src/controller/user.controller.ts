@@ -1,4 +1,4 @@
-import { db, market, order, position, userSchema } from "@repo/db";
+import { db, market, position, userSchema } from "@repo/db";
 import { eq } from "drizzle-orm";
 import type { Request, Response } from "express";
 

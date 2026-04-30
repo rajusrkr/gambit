@@ -6,6 +6,7 @@ import AdminApproval from "./pages/approval/page/approval";
 import CreateMarket from "./pages/create-market/page/create-market";
 import Dashboard from "./pages/dashboard/page/dashboard";
 import Market from "./pages/markets/page/market";
+import Users from "./pages/users/page";
 
 export function App() {
 	return (
@@ -21,6 +22,7 @@ export function App() {
 					<Route path="/" element={<Dashboard />} />
 					<Route path="/create-market" element={<CreateMarket />} />
 					<Route path="/markets" element={<Market />} />
+					<Route path="/users" element={<Users />} />
 				</Route>
 				<Route path="/approval" element={<AdminApproval />} />
 				<Route path="*" element={<PageNotFound />} />

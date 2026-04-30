@@ -7,11 +7,14 @@ import {
 	position,
 	userSchema,
 } from "@repo/db";
-import { and, count, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
 import type { Request, Response } from "express";
 import z from "zod";
 import { processMarketData } from "../lib/helpers/format-data";
 
+/**
+ *  Query params schema for market filtering
+ */
 const QueryParamsSchema = z.object({
 	pageParam: z.string(),
 	limit: z.enum(["21", "31", "41"]),
@@ -24,6 +27,17 @@ const QueryParamsSchema = z.object({
 		"canceled",
 		"all",
 	]),
+});
+
+/**
+ * Query params schema for user filyering
+ */
+const QueryParamsSchemaUser = z.object({
+	pageParam: z.string(),
+	filters: z.object({
+		label: z.enum(["Registered", "Balance", "Profit", "Turnover"]),
+		value: z.enum(["none", "lowest", "highest", "latest", "oldest"]),
+	}),
 });
 
 /**
@@ -465,22 +479,84 @@ export const orderHistory = async (req: Request, res: Response) => {
 /**
  * Get all users from this controller. It's admin only.
  */
-export const getAllusers = async (_req: Request, res: Response) => {
+export const getAllusers = async (req: Request, res: Response) => {
+	const params = req.query;
+	const filterData = {
+		pageParam: params.pageParam,
+		filters: JSON.parse(String(params.filters)),
+	};
+	const validateFilterData = QueryParamsSchemaUser.safeParse(filterData);
+	const { success, data, error } = validateFilterData;
+
+	if (!success) {
+		const errorMessage = error.issues[0].message;
+		return res.status(400).json({ success: false, message: errorMessage });
+	}
+
+	const pageParam = data.pageParam;
+	const filters = data.filters;
+	const limit = 30;
+
 	try {
-		const getUsers = await db.select().from(userSchema.user);
+		const [getTotalUserCount] = await db
+			.select({ count: count() })
+			.from(userSchema.user);
+
+		if (getTotalUserCount.count === 0) {
+			return res
+				.status(200)
+				.json({ success: true, message: "No users avaialble", users: [] });
+		}
+
+		const totalPage = Math.ceil(getTotalUserCount.count / limit);
+		const offset = Number(pageParam) * limit;
+
+		const getUsers = await db
+			.select({
+				userId: userSchema.user.id,
+				name: userSchema.user.name,
+				email: userSchema.user.email,
+				balance: userSchema.user.walletBalance,
+				registeredOn: userSchema.user.createdAt,
+			})
+			.from(userSchema.user)
+			.limit(limit)
+			.offset(offset)
+			.orderBy(
+				...(filters.label === "Registered" && filters.value === "latest"
+					? [desc(userSchema.user.createdAt)]
+					: filters.label === "Registered" && filters.value === "oldest"
+						? [asc(userSchema.user.createdAt)]
+						: []),
+				...(filters.label === "Balance" && filters.value === "highest"
+					? [desc(userSchema.user.walletBalance)]
+					: filters.label === "Balance" && filters.value === "lowest"
+						? [asc(userSchema.user.walletBalance)]
+						: []),
+			);
 
 		if (getUsers.length === 0) {
 			return res.status(200).json({
 				success: false,
 				message: "No users available",
-				users: getUsers,
+				users: [],
 			});
 		}
+
+		const paginatedData = {
+			totalUserCount: getTotalUserCount.count,
+			currentPage: Number(pageParam),
+			nextPage:
+				Number(pageParam) + 1 < totalPage ? Number(pageParam) + 1 : null,
+
+			totalPage,
+			users: getUsers,
+		};
 
 		return res.status(200).json({
 			success: true,
 			message: "Users fetched successfully",
-			users: getUsers,
+			usersData: paginatedData,
 		});
 	} catch (error) {
 		const errorMessage =
