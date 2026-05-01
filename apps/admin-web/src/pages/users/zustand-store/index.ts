@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export type Filters = "none" | "latest" | "oldest" | "highest" | "lowest";
-export type FilterLabel = "Registered" | "Balance" | "Profit" | "Turnover";
+export type FilterLabel = "Registered" | "Wallet Balance" | "Profit" | "Turnover";
 
 interface FilterStates {
 	queryFilter: { label: string; value: string };

@@ -35,7 +35,7 @@ const QueryParamsSchema = z.object({
 const QueryParamsSchemaUser = z.object({
 	pageParam: z.string(),
 	filters: z.object({
-		label: z.enum(["Registered", "Balance", "Profit", "Turnover"]),
+		label: z.enum(["Registered", "Wallet Balance"]),
 		value: z.enum(["none", "lowest", "highest", "latest", "oldest"]),
 	}),
 });
@@ -528,9 +528,9 @@ export const getAllusers = async (req: Request, res: Response) => {
 					: filters.label === "Registered" && filters.value === "oldest"
 						? [asc(userSchema.user.createdAt)]
 						: []),
-				...(filters.label === "Balance" && filters.value === "highest"
+				...(filters.label === "Wallet Balance" && filters.value === "highest"
 					? [desc(userSchema.user.walletBalance)]
-					: filters.label === "Balance" && filters.value === "lowest"
+					: filters.label === "Wallet Balance" && filters.value === "lowest"
 						? [asc(userSchema.user.walletBalance)]
 						: []),
 			);

@@ -44,6 +44,7 @@ const useMarket = ({
 			});
 			return response.markets;
 		},
+		select: (data) => data.pages.flatMap(page => page.marketsData),
 		initialPageParam: 0,
 		getNextPageParam: (lastPage) => lastPage.nextPage,
 		staleTime: 0,
@@ -53,7 +54,7 @@ const useMarket = ({
 	});
 
 	return {
-		markets: getPaginatedMarketQuery.data?.pages[0].marketsData,
+		markets: getPaginatedMarketQuery.data,
 		fetchNextPage: getPaginatedMarketQuery.fetchNextPage,
 		isLoading:
 			getPaginatedMarketQuery.isLoading || getPaginatedMarketQuery.isPending,

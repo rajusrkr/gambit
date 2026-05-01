@@ -17,22 +17,6 @@ interface UserData {
 	users: User[];
 }
 
-/**
- * Data from users quyery
- *
- *
- *
- * const users = [
- *  {
- *      userId: string,
- *      name: string,
- *      email: string,
- *      balance: string,
- *      createdAt: number
- *  }
- * ]
- */
-
 export const useUsers = ({
 	queryFilter,
 }: {
@@ -57,6 +41,17 @@ export const useUsers = ({
 
 			return response.usersData;
 		},
+		select: (pageData) => {
+			const users = pageData.pages.flatMap((page) => page.users);
+			const totalUserCount = pageData.pages.flatMap(
+				(page) => page.totalUserCount,
+			);
+			const showing = pageData.pages.flatMap(
+				(page) => (page.currentPage + 1) * 30 > totalUserCount[0] ? totalUserCount[0] : (page.currentPage + 1) * 30,
+			);
+
+			return { users, totalUserCount, showing };
+		},
 		initialPageParam: 0,
 		getNextPageParam: (lastPage) => lastPage.nextPage,
 		staleTime: 0,
@@ -65,5 +60,16 @@ export const useUsers = ({
 		retry: 1,
 	});
 
-	return { data: userPaginatedUserQuery.data?.pages[0].users };
+	return {
+		data: userPaginatedUserQuery.data?.users,
+		totalUser: userPaginatedUserQuery.data?.totalUserCount[0],
+		userShowing: userPaginatedUserQuery.data?.showing.at(-1),
+		fetchNextPage: userPaginatedUserQuery.fetchNextPage,
+		isError: userPaginatedUserQuery.isError,
+		errorMessage: userPaginatedUserQuery.error,
+		isLoading:
+			userPaginatedUserQuery.isLoading || userPaginatedUserQuery.isPending,
+		isFethchingNextPage: userPaginatedUserQuery.isFetchingNextPage,
+		isFethchingNextPageError: userPaginatedUserQuery.isFetchNextPageError,
+	};
 };
