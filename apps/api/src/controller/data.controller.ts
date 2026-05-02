@@ -510,6 +510,8 @@ export const getAllusers = async (req: Request, res: Response) => {
 
 		const totalPage = Math.ceil(getTotalUserCount.count / limit);
 		const offset = Number(pageParam) * limit;
+		console.log(offset);
+
 
 		const getUsers = await db
 			.select({
@@ -533,6 +535,7 @@ export const getAllusers = async (req: Request, res: Response) => {
 					: filters.label === "Wallet Balance" && filters.value === "lowest"
 						? [asc(userSchema.user.walletBalance)]
 						: []),
+				asc(userSchema.user.id)
 			);
 
 		if (getUsers.length === 0) {
@@ -542,6 +545,9 @@ export const getAllusers = async (req: Request, res: Response) => {
 				users: [],
 			});
 		}
+
+		console.log(getUsers);
+
 
 		const paginatedData = {
 			totalUserCount: getTotalUserCount.count,
