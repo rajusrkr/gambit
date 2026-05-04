@@ -1,15 +1,8 @@
-import {
-	IconCreditCard,
-	IconDotsVertical,
-	IconLogout,
-	IconNotification,
-	IconUserCircle,
-} from "@tabler/icons-react";
+import { IconDotsVertical, IconLogout } from "@tabler/icons-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
-	DropdownMenuGroup,
 	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
@@ -22,10 +15,10 @@ import {
 	useSidebar,
 } from "@/components/ui/sidebar";
 import { useAdminStore } from "@/lib/zustand-store/admin";
+import { adminAuthClient } from "@/lib/better-auth/auth-client";
 
 export function NavUser() {
 	const { isMobile } = useSidebar();
-
 	const { email, name } = useAdminStore();
 
 	return (
@@ -73,22 +66,12 @@ export function NavUser() {
 							</div>
 						</DropdownMenuLabel>
 						<DropdownMenuSeparator />
-						<DropdownMenuGroup>
-							<DropdownMenuItem>
-								<IconUserCircle />
-								Account
-							</DropdownMenuItem>
-							<DropdownMenuItem>
-								<IconCreditCard />
-								Billing
-							</DropdownMenuItem>
-							<DropdownMenuItem>
-								<IconNotification />
-								Notifications
-							</DropdownMenuItem>
-						</DropdownMenuGroup>
-						<DropdownMenuSeparator />
-						<DropdownMenuItem>
+						<DropdownMenuItem variant="destructive"
+						onClick={(e) => {
+							e.preventDefault()
+							adminAuthClient.signOut()
+						}}
+						>
 							<IconLogout />
 							Log out
 						</DropdownMenuItem>
