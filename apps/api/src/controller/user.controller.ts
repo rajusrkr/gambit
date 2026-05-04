@@ -2,8 +2,17 @@ import { db, market, position, userSchema } from "@repo/db";
 import { eq } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { v7 as uuidv7 } from "uuid";
+import z from "zod";
 
-type WithdrawalFlag = "enable" | "disable";
+const AccountStatusSchema = z.object({
+	status: z.enum(["active", "suspended"]),
+	userId: z.string(),
+});
+
+const AccountWithdrawalStatusSchema = z.object({
+	status: z.enum(["yes", "no"]),
+	userId: z.string(),
+});
 
 /**
  * Use this controller to get all pisition taken by a user
@@ -57,26 +66,24 @@ export const fetchAllPosition = async (req: Request, res: Response) => {
 /**
  * Change user wallet withdraw flag. It's admin only.
  */
-export const changeWithdrawalStatus = async (req: Request, res: Response) => {
-	const queryParams = req.query;
-	const userId = queryParams.id;
-
-	const data = queryParams.data;
-	const withdrawalFlag: WithdrawalFlag = data as WithdrawalFlag;
-
-	if (!userId) {
-		return res.status(400).json({
-			success: false,
-			message: "User id is required to change withdrawal status",
-		});
+export const changeAccountWithdrawalStatus = async (
+	req: Request,
+	res: Response,
+) => {
+	const queryParams = req.body;
+	const { success, data, error } =
+		AccountWithdrawalStatusSchema.safeParse(queryParams);
+	if (!success) {
+		const errorMessage = error.issues[0].message;
+		return res.status(400).json({ success: false, message: errorMessage });
 	}
 
 	try {
-		const updateUserWithdrawal = await db
+		const updateAccountStatus = await db
 			.update(userSchema.user)
-			.set({ withdrawalEnabled: withdrawalFlag === "enable" })
-			.where(eq(userSchema.user.id, String(userId)));
-		if (updateUserWithdrawal.rowCount === 0) {
+			.set({ isWithdrawalOn: data.status })
+			.where(eq(userSchema.user.id, data.userId));
+		if (updateAccountStatus.rowCount === 0) {
 			return res.status(400).json({
 				success: false,
 				message: "Something went wrong, unable to change withdrawal flag",
@@ -86,6 +93,40 @@ export const changeWithdrawalStatus = async (req: Request, res: Response) => {
 		return res.status(200).json({
 			success: true,
 			message: "Withdrawal status updated successfully.",
+		});
+	} catch (error) {
+		const errorMessage =
+			error instanceof Error ? error.message : "Internal server error";
+		return res.status(500).json({ success: false, message: errorMessage });
+	}
+};
+
+/**
+ * Change user wallet withdraw flag. It's admin only.
+ */
+export const changeAccountStatus = async (req: Request, res: Response) => {
+	const queryParams = req.body;
+	const { success, data, error } = AccountStatusSchema.safeParse(queryParams);
+	if (!success) {
+		const errorMessage = error.issues[0].message;
+		return res.status(400).json({ success: false, message: errorMessage });
+	}
+
+	try {
+		const updateAccountStatus = await db
+			.update(userSchema.user)
+			.set({ isAccountActive: data.status })
+			.where(eq(userSchema.user.id, data.userId));
+		if (updateAccountStatus.rowCount === 0) {
+			return res.status(400).json({
+				success: false,
+				message: "Something went wrong, unable to change account status flag",
+			});
+		}
+
+		return res.status(200).json({
+			success: true,
+			message: "Account status updated successfully.",
 		});
 	} catch (error) {
 		const errorMessage =

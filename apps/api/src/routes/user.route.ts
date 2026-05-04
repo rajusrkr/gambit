@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { buyOrder, sellOrder } from "../controller/order.controller";
 import {
-	changeWithdrawalStatus,
+	changeAccountStatus,
+	changeAccountWithdrawalStatus,
 	dummyUsers,
 	fetchAllPosition,
 } from "../controller/user.controller";
@@ -14,12 +15,15 @@ router.post("/order/buy", authMiddleWareUser, buyOrder);
 router.post("/order/sell", authMiddleWareUser, sellOrder);
 router.get("/position/get-all", authMiddleWareUser, fetchAllPosition);
 // Admin only
-router.put(
-	"/update/withdrawal",
+router.patch(
+	"/withdrawal-status",
 	authMiddleWareAdmin,
-	changeWithdrawalStatus,
+	changeAccountWithdrawalStatus,
 );
 
 router.post("/create", authMiddleWareAdmin, dummyUsers);
+
+
+router.patch("/account-status", authMiddleWareAdmin, changeAccountStatus)
 
 export default router;

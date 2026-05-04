@@ -3,10 +3,14 @@ import {
 	boolean,
 	decimal,
 	index,
+	pgEnum,
 	pgTable,
 	text,
 	timestamp,
 } from "drizzle-orm/pg-core";
+
+export const withdrawalEnum = pgEnum("withdrawal_enabled_enum", ["yes", "no"])
+export const isAccountActiveEnum = pgEnum("is_account_active_enum", ["active", "suspended"])
 
 export const user = pgTable("user", {
 	id: text("id").primaryKey(),
@@ -14,13 +18,6 @@ export const user = pgTable("user", {
 	email: text("email").notNull().unique(),
 	emailVerified: boolean("email_verified").default(false).notNull(),
 	image: text("image"),
-	createdAt: timestamp("created_at", { withTimezone: true })
-		.defaultNow()
-		.notNull(),
-	updatedAt: timestamp("updated_at", { withTimezone: true })
-		.defaultNow()
-		.$onUpdate(() => /* @__PURE__ */ new Date())
-		.notNull(),
 	twoFactorEnabled: boolean("two_factor_enabled").default(false),
 	username: text("username").unique(),
 	displayUsername: text("display_username"),
@@ -31,9 +28,17 @@ export const user = pgTable("user", {
 		scale: 18,
 		mode: "string",
 	})
-		.default("0")
+	.default("0")
+	.notNull(),
+	isWithdrawalOn: withdrawalEnum("is_withdrawal_on").default("yes"),
+	isAccountActive: isAccountActiveEnum("is_account_active").default("active"),
+	createdAt: timestamp("created_at", { withTimezone: true })
+		.defaultNow()
 		.notNull(),
-	withdrawalEnabled: boolean("withdrawal_enabled").default(true),
+	updatedAt: timestamp("updated_at", { withTimezone: true })
+		.defaultNow()
+		.$onUpdate(() => /* @__PURE__ */ new Date())
+		.notNull(),
 });
 
 export const session = pgTable(

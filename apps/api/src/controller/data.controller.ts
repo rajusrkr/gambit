@@ -510,8 +510,6 @@ export const getAllusers = async (req: Request, res: Response) => {
 
 		const totalPage = Math.ceil(getTotalUserCount.count / limit);
 		const offset = Number(pageParam) * limit;
-		console.log(offset);
-
 
 		const getUsers = await db
 			.select({
@@ -535,7 +533,7 @@ export const getAllusers = async (req: Request, res: Response) => {
 					: filters.label === "Wallet Balance" && filters.value === "lowest"
 						? [asc(userSchema.user.walletBalance)]
 						: []),
-				asc(userSchema.user.id)
+				asc(userSchema.user.id),
 			);
 
 		if (getUsers.length === 0) {
@@ -545,9 +543,6 @@ export const getAllusers = async (req: Request, res: Response) => {
 				users: [],
 			});
 		}
-
-		console.log(getUsers);
-
 
 		const paginatedData = {
 			totalUserCount: getTotalUserCount.count,
@@ -564,6 +559,52 @@ export const getAllusers = async (req: Request, res: Response) => {
 			message: "Users fetched successfully",
 			usersData: paginatedData,
 		});
+	} catch (error) {
+		const errorMessage =
+			error instanceof Error ? error.message : "Internal server error";
+		return res.status(500).json({ success: false, message: errorMessage });
+	}
+};
+
+/**
+ * Get a single user by id
+ */
+export const getUser = async (req: Request, res: Response) => {
+	const queryParams = req.query;
+	const userId = queryParams.userId;
+
+	if (!userId) {
+		return res
+			.status(400)
+			.json({
+				success: false,
+				message: "User is required for fetching user details",
+			});
+	}
+
+	try {
+		const [user] = await db
+			.select({
+				name: userSchema.user.name,
+				email: userSchema.user.email,
+				accountCreated: userSchema.user.createdAt,
+				balance: userSchema.user.walletBalance,
+				is2faOn: userSchema.user.twoFactorEnabled,
+				withdrawalAllowed: userSchema.user.isWithdrawalOn,
+				isAccountActive: userSchema.user.isAccountActive,
+			})
+			.from(userSchema.user)
+			.where(eq(userSchema.user.id, String(userId)));
+
+		if (!user) {
+			return res
+				.status(400)
+				.json({ success: false, message: "No user found with provided id" });
+		}
+
+		return res
+			.status(200)
+			.json({ success: true, message: "User fetched successfully", user });
 	} catch (error) {
 		const errorMessage =
 			error instanceof Error ? error.message : "Internal server error";

@@ -7,6 +7,7 @@ import {
 	getPaginatedMarketQueryData,
 	getPositionByMarketId,
 	getPriceHistory,
+	getUser,
 	orderHistory,
 } from "../controller/data.controller";
 import { authMiddleWareAdmin } from "../lib/helpers/middlewares/admin-auth";
@@ -24,5 +25,6 @@ router.get("/market-discussions", authMiddleWareUser, getDiscussion);
 router.get("/order-history", authMiddleWareUser, orderHistory);
 // Admin only
 router.get("/user/all-users", authMiddleWareAdmin, getAllusers);
+router.get("/user", authMiddleWareAdmin, getUser);
 
 export default router;

@@ -19,6 +19,18 @@ import {
 import { useUsers } from "../hooks/useUsers";
 import type { FilterLabel, Filters } from "../zustand-store";
 import { useMarketFilterStore } from "../zustand-store";
+import {
+	Dialog,
+	DialogClose,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
+import UserDialogContent from "./UserDialogContent";
+import { Link } from "react-router";
 
 const userData = [
 	{ name: "Aarav Sharma", email: "aarav.sharma1@gmail.com" },
@@ -287,29 +299,54 @@ export default function UserTable() {
 					</TableHeader>
 					<TableBody>
 						{data?.map((user, i) => (
-							<TableRow
-								key={user.userId}
-								onClick={() => {
-									console.log(user);
-								}}
-								className="hover:cursor-pointer"
-							>
-								<TableCell>{i + 1}</TableCell>
-								<TableCell>
-									{new Date(user.registeredOn).toDateString()}
-								</TableCell>
-								<TableCell>{user.name}</TableCell>
-								<TableCell>{user.email}</TableCell>
-								<TableCell>
-									${Math.floor(Number(user.balance) * 100) / 100}
-								</TableCell>
-								<TableCell className="text-right">{user.userId}</TableCell>
-							</TableRow>
+							<Dialog key={user.userId}>
+								<DialogTrigger asChild>
+									<TableRow
+										onClick={() => {
+											// console.log(user);
+										}}
+										className="hover:cursor-pointer"
+									>
+										<TableCell>{i + 1}</TableCell>
+										<TableCell>
+											{new Date(user.registeredOn).toDateString()}
+										</TableCell>
+										<TableCell>{user.name}</TableCell>
+										<TableCell>{user.email}</TableCell>
+										<TableCell>
+											${Math.floor(Number(user.balance) * 100) / 100}
+										</TableCell>
+										<TableCell className="text-right">{user.userId}</TableCell>
+									</TableRow>
+								</DialogTrigger>
+								<DialogContent className="sm:max-w-sm">
+									<DialogHeader>
+										<DialogTitle>Edit profile</DialogTitle>
+										<DialogDescription>
+											Make changes to your profile here. Click save when
+											you&apos;re done.
+										</DialogDescription>
+									</DialogHeader>
+									<div className="overflow-y-auto max-h-[50vh] no-scrollbar">
+										<UserDialogContent userId={user.userId} />
+									</div>
+									<DialogFooter>
+										<Link to={`/users/${user.userId}`}>
+											<Button className="hover:cursor-pointer">
+												More details
+											</Button>
+										</Link>
+										<DialogClose asChild>
+											<Button variant="outline">Close</Button>
+										</DialogClose>
+									</DialogFooter>
+								</DialogContent>
+							</Dialog>
 						))}
 
 						<TableRow>
 							<TableCell colSpan={6} className="text-center py-4">
-								Total users: {totalUser} showing: {userShowing}
+								Total users: {totalUser}, showing: {userShowing}
 							</TableCell>
 						</TableRow>
 
