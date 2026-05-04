@@ -1,7 +1,6 @@
 import { db, market, position, userSchema } from "@repo/db";
 import { eq } from "drizzle-orm";
 import type { Request, Response } from "express";
-import { v7 as uuidv7 } from "uuid";
 import z from "zod";
 
 const AccountStatusSchema = z.object({
@@ -128,33 +127,6 @@ export const changeAccountStatus = async (req: Request, res: Response) => {
 			success: true,
 			message: "Account status updated successfully.",
 		});
-	} catch (error) {
-		const errorMessage =
-			error instanceof Error ? error.message : "Internal server error";
-		return res.status(500).json({ success: false, message: errorMessage });
-	}
-};
-
-/**
- * Create dummy users
- */
-
-export const dummyUsers = async (req: Request, res: Response) => {
-	const data = req.body;
-	const userData = data.data;
-
-	try {
-		const createuser = await db.insert(userSchema.user).values({
-			email: userData.email,
-			name: userData.name,
-			id: uuidv7(),
-		});
-
-		if (createuser.rowCount === 0) {
-			return res.status(400).json({ s: false, m: "Unable to create user" });
-		}
-
-		return res.status(200).json({ s: true, m: "user created successfully" });
 	} catch (error) {
 		const errorMessage =
 			error instanceof Error ? error.message : "Internal server error";

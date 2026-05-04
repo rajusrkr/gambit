@@ -3,7 +3,6 @@ import { buyOrder, sellOrder } from "../controller/order.controller";
 import {
 	changeAccountStatus,
 	changeAccountWithdrawalStatus,
-	dummyUsers,
 	fetchAllPosition,
 } from "../controller/user.controller";
 import { authMiddleWareAdmin } from "../lib/helpers/middlewares/admin-auth";
@@ -20,10 +19,6 @@ router.patch(
 	authMiddleWareAdmin,
 	changeAccountWithdrawalStatus,
 );
-
-router.post("/create", authMiddleWareAdmin, dummyUsers);
-
-
-router.patch("/account-status", authMiddleWareAdmin, changeAccountStatus)
+router.patch("/account-status", authMiddleWareAdmin, changeAccountStatus);
 
 export default router;
